@@ -2,9 +2,12 @@ package id.neotica.orpheum.uploader.di
 
 import id.neotica.orpheum.uploader.data.local.DesktopTokenStorage
 import id.neotica.orpheum.uploader.data.remote.AuthRepositoryImpl
+import id.neotica.orpheum.uploader.data.remote.CatalogRepositoryImpl
 import id.neotica.orpheum.uploader.domain.local.TokenStorage
 import id.neotica.orpheum.uploader.domain.remote.AuthRepository
+import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.ui.feature.auth.LoginViewModel
+import id.neotica.orpheum.uploader.ui.feature.upload.UploadViewModel
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -35,7 +38,10 @@ val dataModules = module {
         )
     }
 
+    singleOf(::CatalogRepositoryImpl).bind(CatalogRepository::class)
+
     viewModelOf(::LoginViewModel)
+    viewModelOf(::UploadViewModel)
 }
 val networkModule = module {
     single<HttpClient> {
@@ -54,6 +60,7 @@ val networkModule = module {
                     loadTokens {
                         storage.getToken()?.let { BearerTokens(it, "") }
                     }
+                    sendWithoutRequest { true }
                 }
             }
         }
