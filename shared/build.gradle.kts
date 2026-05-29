@@ -5,9 +5,17 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
-//    alias(libs.plugins.composeHotReload)
     alias(libs.plugins.kotlin.serialization)
     id("com.github.gmazzo.buildconfig") version "5.3.5"
+}
+
+val osName = System.getProperty("os.name").lowercase()
+val osArch = System.getProperty("os.arch")
+val fxPlatform = when {
+    osName.contains("win") -> "win"
+    osName.contains("mac") -> if (osArch == "aarch64") "mac-aarch64" else "mac"
+    osName.contains("nux") || osName.contains("nix") -> "linux"
+    else -> "win"
 }
 
 kotlin {
@@ -29,6 +37,14 @@ kotlin {
             implementation("net.dongliu:apk-parser:2.6.10")
             implementation("io.coil-kt.coil3:coil-compose:3.0.4")
             implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
+        }
+        jvmMain.dependencies {
+            implementation(compose.desktop.currentOs)
+            implementation(libs.kotlinx.coroutinesSwing)
+            implementation("org.openjfx:javafx-base:19.0.2:$fxPlatform")
+            implementation("org.openjfx:javafx-graphics:19.0.2:$fxPlatform")
+            implementation("org.openjfx:javafx-media:19.0.2:$fxPlatform")
+            implementation("org.openjfx:javafx-swing:19.0.2:$fxPlatform")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

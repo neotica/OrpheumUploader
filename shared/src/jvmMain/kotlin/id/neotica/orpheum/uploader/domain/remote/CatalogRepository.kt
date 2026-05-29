@@ -1,5 +1,6 @@
 package id.neotica.orpheum.uploader.domain.remote
 
+import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
 import java.io.File
 
 interface CatalogRepository {
@@ -24,4 +25,5 @@ interface CatalogRepository {
         file: File,
         onProgress: (Float) -> Unit
     ): Result<String> // Registers and pushes tracking entry
+    suspend fun getNewReleases(page: Int = 1, limit: Int = 10): Result<TrackFeedResponse>
 }

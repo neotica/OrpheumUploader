@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import id.neotica.orpheum.uploader.ui.components.DarkBackground
 import id.neotica.orpheum.uploader.ui.components.DarkPrimary
+import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadView
 
 @Composable
@@ -120,10 +121,9 @@ fun MainView(
                     .background(DarkBackground)
                     .padding(it)
             ) {
-//                var selectedAppToUpdate by remember { mutableStateOf<AppFeedItemResponse?>(null) }
-//
                 when (screenType) {
                     MainScreenType.UPLOADER -> UploadView()
+                    MainScreenType.TRACK_FEED -> TrackFeedView()
                 }
             }
         }
@@ -131,5 +131,6 @@ fun MainView(
 }
 
 enum class MainScreenType {
-    UPLOADER
+    UPLOADER,
+    TRACK_FEED
 }

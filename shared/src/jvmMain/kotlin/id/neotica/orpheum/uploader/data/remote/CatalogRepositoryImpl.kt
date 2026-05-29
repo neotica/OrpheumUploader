@@ -1,6 +1,9 @@
 package id.neotica.orpheum.uploader.data.remote
 
-import id.neotica.orpheum.uploader.domain.model.catalog.*
+import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRequest
+import id.neotica.orpheum.uploader.domain.model.catalog.request.ArtistRequest
+import id.neotica.orpheum.uploader.domain.model.catalog.request.CreationResponse
+import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
@@ -8,6 +11,8 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.onUpload
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
+import io.ktor.client.request.get
+import io.ktor.client.request.parameter
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -94,6 +99,20 @@ class CatalogRepositoryImpl(
         } else {
             val errorBody = response.bodyAsText()
             Result.failure(Exception("Track upload failed: ${response.status} - $errorBody"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getNewReleases(page: Int, limit: Int): Result<TrackFeedResponse> = try {
+        val response = httpClient.get("$baseUrl/catalog/tracks/new") {
+            parameter("page", page)
+            parameter("limit", limit)
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch tracks: ${response.status}"))
         }
     } catch (e: Exception) {
         Result.failure(e)

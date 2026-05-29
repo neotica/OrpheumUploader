@@ -1,12 +1,15 @@
 package id.neotica.orpheum.uploader.di
 
+import id.neotica.orpheum.uploader.data.local.DesktopAudioPlayer
 import id.neotica.orpheum.uploader.data.local.DesktopTokenStorage
 import id.neotica.orpheum.uploader.data.remote.AuthRepositoryImpl
 import id.neotica.orpheum.uploader.data.remote.CatalogRepositoryImpl
+import id.neotica.orpheum.uploader.domain.local.AudioPlayer
 import id.neotica.orpheum.uploader.domain.local.TokenStorage
 import id.neotica.orpheum.uploader.domain.remote.AuthRepository
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.ui.feature.auth.LoginViewModel
+import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedViewModel
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadViewModel
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
@@ -29,6 +32,7 @@ import org.koin.dsl.module
 
 val dataModules = module {
     singleOf(::DesktopTokenStorage).bind(TokenStorage::class)
+    single<AudioPlayer> { DesktopAudioPlayer() }
 
     single<AuthRepository> {
         AuthRepositoryImpl(
@@ -42,6 +46,7 @@ val dataModules = module {
 
     viewModelOf(::LoginViewModel)
     viewModelOf(::UploadViewModel)
+    viewModelOf(::TrackFeedViewModel)
 }
 val networkModule = module {
     single<HttpClient> {
