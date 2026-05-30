@@ -4,12 +4,16 @@ import id.neotica.orpheum.uploader.data.local.DesktopAudioPlayer
 import id.neotica.orpheum.uploader.data.local.DesktopTokenStorage
 import id.neotica.orpheum.uploader.data.remote.AuthRepositoryImpl
 import id.neotica.orpheum.uploader.data.remote.CatalogRepositoryImpl
+import id.neotica.orpheum.uploader.data.remote.UploadRepositoryImpl
 import id.neotica.orpheum.uploader.domain.local.AudioPlayer
 import id.neotica.orpheum.uploader.domain.local.TokenStorage
 import id.neotica.orpheum.uploader.domain.remote.AuthRepository
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
+import id.neotica.orpheum.uploader.domain.remote.UploadRepository
+import id.neotica.orpheum.uploader.ui.feature.albumdetail.AlbumDetailViewModel
 import id.neotica.orpheum.uploader.ui.feature.auth.LoginViewModel
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedViewModel
+import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedViewModel
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadViewModel
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
@@ -43,10 +47,13 @@ val dataModules = module {
     }
 
     singleOf(::CatalogRepositoryImpl).bind(CatalogRepository::class)
+    singleOf(::UploadRepositoryImpl).bind(UploadRepository::class)
 
     viewModelOf(::LoginViewModel)
     viewModelOf(::UploadViewModel)
     viewModelOf(::TrackFeedViewModel)
+    viewModelOf(::AlbumFeedViewModel)
+    viewModelOf(::AlbumDetailViewModel)
 }
 val networkModule = module {
     single<HttpClient> {

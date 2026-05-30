@@ -1,19 +1,25 @@
 package id.neotica.orpheum.uploader.data.remote
 
+import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.ArtistRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.CreationResponse
+import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumRequest
+import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumDetailResponse
+import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.onUpload
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
@@ -113,6 +119,56 @@ class CatalogRepositoryImpl(
             Result.success(response.body())
         } else {
             Result.failure(Exception("Failed to fetch tracks: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getAlbums(page: Int, limit: Int): Result<AlbumFeedResponse> = try {
+        val response = httpClient.get("$baseUrl/catalog/new-releases") {
+            parameter("page", page)
+            parameter("limit", limit)
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch albums: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getAlbumDetails(albumId: String): Result<AlbumDetailResponse> = try {
+        val response = httpClient.get("$baseUrl/albums/$albumId")
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to load album details: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun updateAlbum(albumId: String, request: UpdateAlbumRequest): Result<AlbumRemoteModel> = try {
+        val response = httpClient.put("$baseUrl/admin/albums/$albumId") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body()) // Parses the updated album JSON
+        } else {
+            Result.failure(Exception("Failed to update album: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun deleteAlbum(albumId: String): Result<String> = try {
+        val response = httpClient.delete("$baseUrl/admin/albums/$albumId")
+        if (response.status.isSuccess()) {
+            Result.success("Album deleted successfully")
+        } else {
+            Result.failure(Exception("Failed to delete album: ${response.status}"))
         }
     } catch (e: Exception) {
         Result.failure(e)

@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import id.neotica.orpheum.uploader.ui.components.DarkBackground
 import id.neotica.orpheum.uploader.ui.components.DarkPrimary
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
+import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumHostView
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadView
 
 @Composable
@@ -124,6 +125,7 @@ fun MainView(
                 when (screenType) {
                     MainScreenType.UPLOADER -> UploadView()
                     MainScreenType.TRACK_FEED -> TrackFeedView()
+                    MainScreenType.ALBUM_MANAGER -> AlbumHostView()
                 }
             }
         }
@@ -132,5 +134,6 @@ fun MainView(
 
 enum class MainScreenType {
     UPLOADER,
-    TRACK_FEED
+    TRACK_FEED,
+    ALBUM_MANAGER
 }
