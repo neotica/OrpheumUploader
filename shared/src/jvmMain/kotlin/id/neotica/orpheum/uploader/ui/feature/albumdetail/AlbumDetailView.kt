@@ -217,7 +217,10 @@ private fun ImageDropzone(
                 if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                     val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<*>
                     val validImage = files?.filterIsInstance<File>()?.firstOrNull {
-                        it.extension.equals("png", true) || it.extension.equals("jpg", true) || it.extension.equals("jpeg", true)
+                        it.extension.equals("png", true) ||
+                        it.extension.equals("jpg", true) ||
+                        it.extension.equals("jpeg", true) ||
+                        it.extension.equals("webp", true)
                     }
                     if (validImage != null) {
                         onFileSelected(validImage)
@@ -273,7 +276,10 @@ private fun ImageDropzone(
 private fun chooseNativeImage(): File? {
     val dialog = FileDialog(null as Frame?, "Select Album Cover", FileDialog.LOAD)
     dialog.setFilenameFilter { _, name ->
-        name.endsWith(".png", true) || name.endsWith(".jpg", true) || name.endsWith(".jpeg", true)
+        name.endsWith(".png", true) ||
+        name.endsWith(".jpg", true) ||
+        name.endsWith(".jpeg", true) ||
+        name.endsWith(".webp", true)
     }
     dialog.isVisible = true
     val directory = dialog.directory

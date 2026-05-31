@@ -1,7 +1,7 @@
 package id.neotica.orpheum.uploader.data.remote
 
 import id.neotica.orpheum.uploader.domain.remote.UploadRepository
-import id.neotica.orpheum.uploader.utils.Constants.BASE_URL_BUCKET
+import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.MultiPartFormDataContent
 import io.ktor.client.request.forms.formData
@@ -23,7 +23,7 @@ class UploadRepositoryImpl(
     ): Result<String> {
         return try {
             // Target the 'orpheum' bucket specifically
-            val targetUrl = "$BASE_URL_BUCKET/orpheum/upload/form"
+            val targetUrl = "$BASE_URL/bucket/v1/orpheum/upload/form"
 
             val response = httpClient.post(targetUrl) {
                 setBody(
@@ -31,9 +31,11 @@ class UploadRepositoryImpl(
                         formData {
                             append("file", file.readBytes(), Headers.build {
                                 // Dynamically assign mime type so the browser can read it later
-                                val mimeType = if (file.extension.equals("png", true)) {
-                                    "image/png"
-                                } else "image/jpeg"
+                                val mimeType = when (file.extension.lowercase()) {
+                                    "png" -> "image/png"
+                                    "webp" -> "image/webp"
+                                    else -> "image/jpeg"
+                                }
 
                                 append(HttpHeaders.ContentType, mimeType)
 
