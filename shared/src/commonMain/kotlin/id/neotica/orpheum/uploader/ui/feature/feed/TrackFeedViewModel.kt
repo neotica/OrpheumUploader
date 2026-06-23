@@ -2,9 +2,9 @@ package id.neotica.orpheum.uploader.ui.feature.feed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import id.neotica.orpheum.uploader.domain.local.AudioPlayer
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteModel
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
+import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +13,7 @@ import kotlinx.coroutines.launch
 
 class TrackFeedViewModel(
     private val repository: CatalogRepository,
-    val audioPlayer: AudioPlayer // Injected via Koin
+    private val playbackViewModel: PlaybackViewModel
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(FeedUiState())
@@ -38,23 +38,6 @@ class TrackFeedViewModel(
     }
 
     fun playTrack(track: TrackRemoteModel) {
-        // Construct the relay URL through Ktor
-        val streamUrl = "https://dev.neotica.id/orpheum/stream/${track.id}"
-
-        _state.update { it.copy(currentlyPlayingId = track.id) }
-        audioPlayer.play(streamUrl)
-    }
-
-    fun pausePlayback() {
-        audioPlayer.pause()
-    }
-
-    fun resumePlayback() {
-        audioPlayer.resume()
-    }
-
-    fun stopPlayback() {
-        audioPlayer.stop()
-        _state.update { it.copy(currentlyPlayingId = null) }
+        playbackViewModel.play(track)
     }
 }

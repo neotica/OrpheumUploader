@@ -5,6 +5,5 @@ import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteMode
 data class FeedUiState(
     val tracks: List<TrackRemoteModel> = emptyList(),
     val isLoading: Boolean = true,
-    val errorMessage: String? = null,
-    val currentlyPlayingId: String? = null
+    val errorMessage: String? = null
 )

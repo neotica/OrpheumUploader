@@ -17,8 +17,8 @@ import id.neotica.orpheum.uploader.ui.components.DarkPrimaryCard
 
 @Composable
 fun AppNavigationRail(
-    currentScreen: MainScreenType,
-    onNavigate: (MainScreenType) -> Unit,
+    currentScreen: Screen,
+    onNavigate: (Screen) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     NavigationRail(
@@ -30,8 +30,8 @@ fun AppNavigationRail(
         Spacer(Modifier.height(8.dp))
         navItems.forEach { item ->
             NavigationRailItem(
-                selected = currentScreen == item.type,
-                onClick = { onNavigate(item.type) },
+                selected = currentScreen == item.screen,
+                onClick = { onNavigate(item.screen) },
                 icon = {
                     Text(
                         text = item.indicator,

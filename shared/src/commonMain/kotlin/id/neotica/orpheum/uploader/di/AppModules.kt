@@ -10,6 +10,7 @@ import id.neotica.orpheum.uploader.ui.feature.albumdetail.AlbumDetailViewModel
 import id.neotica.orpheum.uploader.ui.feature.auth.LoginViewModel
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedViewModel
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedViewModel
+import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadViewModel
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import org.koin.core.context.GlobalContext.startKoin
@@ -30,6 +31,8 @@ val sharedModule = module {
             BASE_URL
         )
     }
+
+    singleOf(::PlaybackViewModel)
 
     viewModelOf(::LoginViewModel)
     viewModelOf(::UploadViewModel)

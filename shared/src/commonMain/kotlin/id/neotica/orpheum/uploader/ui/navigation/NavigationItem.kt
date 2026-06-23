@@ -1,19 +1,14 @@
 package id.neotica.orpheum.uploader.ui.navigation
 
-enum class MainScreenType {
-    UPLOADER,
-    TRACK_FEED,
-    ALBUM_MANAGER
-}
-
 data class NavItem(
-    val type: MainScreenType,
+    val screen: Screen,
     val label: String,
     val indicator: String,
 )
 
 val navItems = listOf(
-    NavItem(MainScreenType.UPLOADER, "Upload", "📦"),
-    NavItem(MainScreenType.TRACK_FEED, "Feed", "📋️"),
-    NavItem(MainScreenType.ALBUM_MANAGER, "Album Manager", "\uD83D\uDCBF"),
+    NavItem(Screen.Upload, "Upload", "\uD83D\uDCE6"),
+    NavItem(Screen.Feed, "Feed", "\uD83D\uDCCB"),
+    NavItem(Screen.Albums, "Albums", "\uD83D\uDCBF"),
+    NavItem(Screen.Account, "Account", "\uD83D\uDC64"),
 )
