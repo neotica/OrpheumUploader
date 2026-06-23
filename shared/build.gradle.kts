@@ -83,6 +83,5 @@ buildConfig {
     }
 
     buildConfigField("String", "BASE_URL", getCleanConfig("BASE_URL"))
-    buildConfigField("String", "BASE_URL_BUCKET", getCleanConfig("BASE_URL_BUCKET"))
     buildConfigField("String", "BASE_URL_BUCKET_PUBLIC", getCleanConfig("BASE_URL_BUCKET_PUBLIC"))
 }

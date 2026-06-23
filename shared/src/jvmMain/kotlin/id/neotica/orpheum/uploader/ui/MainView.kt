@@ -28,6 +28,8 @@ import id.neotica.orpheum.uploader.ui.components.DarkPrimary
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumHostView
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadView
+import id.neotica.orpheum.uploader.ui.navigation.AppNavigationRail
+import id.neotica.orpheum.uploader.ui.navigation.MainScreenType
 
 @Composable
 fun MainView(
@@ -45,7 +47,7 @@ fun MainView(
                         TopAppBar(
                             title = {
                                 Text(
-                                    text = "Neostore Admin",
+                                    text = "Orpheum Uploader",
                                     color = DarkPrimary
                                 )
                             },
@@ -115,25 +117,31 @@ fun MainView(
                     HorizontalDivider(Modifier, thickness = 2.dp, color = DarkPrimary)
                 }
             }
-        ) {
-            Column(
+        ) { paddingValues ->
+            Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(DarkBackground)
-                    .padding(it)
+                    .padding(paddingValues)
             ) {
-                when (screenType) {
-                    MainScreenType.UPLOADER -> UploadView()
-                    MainScreenType.TRACK_FEED -> TrackFeedView()
-                    MainScreenType.ALBUM_MANAGER -> AlbumHostView()
+                AppNavigationRail(
+                    currentScreen = screenType,
+                    onNavigate = { screenType = it },
+                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(DarkBackground)
+                        .padding(paddingValues)
+                ) {
+                    when (screenType) {
+                        MainScreenType.UPLOADER -> UploadView()
+                        MainScreenType.TRACK_FEED -> TrackFeedView()
+                        MainScreenType.ALBUM_MANAGER -> AlbumHostView()
+                    }
                 }
             }
+
         }
     }
-}
-
-enum class MainScreenType {
-    UPLOADER,
-    TRACK_FEED,
-    ALBUM_MANAGER
 }
