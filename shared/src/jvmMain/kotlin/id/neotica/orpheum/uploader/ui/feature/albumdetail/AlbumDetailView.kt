@@ -59,12 +59,13 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AlbumDetailView(
+actual fun AlbumDetailView(
     albumId: String,
     onNavigateBack: () -> Unit,
-    viewModel: AlbumDetailViewModel = koinViewModel(key = albumId) { parametersOf(albumId) }
+    viewModel: AlbumDetailViewModel?
 ) {
-    val state by viewModel.state.collectAsState()
+    val resolvedViewModel = viewModel ?: koinViewModel(key = albumId) { parametersOf(albumId) }
+    val state by resolvedViewModel.state.collectAsState()
 
     // Automatically navigate back if the album gets deleted
     LaunchedEffect(state.isDeleted) {
@@ -84,7 +85,7 @@ fun AlbumDetailView(
                 actions = {
                     if (state.albumDetails != null) {
                         OutlinedButton(
-                            onClick = viewModel::deleteAlbum,
+                            onClick = resolvedViewModel::deleteAlbum,
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                             modifier = Modifier.padding(end = 8.dp)
@@ -96,7 +97,7 @@ fun AlbumDetailView(
                         }
 
                         Button(
-                            onClick = viewModel::saveChanges,
+                            onClick = resolvedViewModel::saveChanges,
                             enabled = !state.isSaving
                         ) {
                             Text("💾")
@@ -127,7 +128,7 @@ fun AlbumDetailView(
                             selectedFile = state.selectedCoverFile,
                             currentCoverUrl = state.albumDetails?.album?.coverUrl,
                             isLoading = state.isSaving,
-                            onFileSelected = viewModel::setCoverFile
+                            onFileSelected = resolvedViewModel::setCoverFile
                         )
 
                         if (state.errorMessage != null) {
@@ -145,14 +146,14 @@ fun AlbumDetailView(
 
                                 OutlinedTextField(
                                     value = state.editTitle,
-                                    onValueChange = viewModel::updateTitle,
+                                    onValueChange = resolvedViewModel::updateTitle,
                                     label = { Text("Album Title") },
                                     modifier = Modifier.fillMaxWidth()
                                 )
 
                                 OutlinedTextField(
                                     value = state.editYear,
-                                    onValueChange = viewModel::updateYear,
+                                    onValueChange = resolvedViewModel::updateYear,
                                     label = { Text("Release Year") },
                                     modifier = Modifier.fillMaxWidth()
                                 )

@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.androidLibrary)
     id("com.github.gmazzo.buildconfig") version "5.3.5"
 }
 
@@ -20,6 +21,15 @@ val fxPlatform = when {
 
 kotlin {
     jvm()
+    androidTarget {
+        compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+                }
+            }
+        }
+    }
     
     sourceSets {
         commonMain.dependencies {
@@ -37,14 +47,21 @@ kotlin {
             implementation("net.dongliu:apk-parser:2.6.10")
             implementation("io.coil-kt.coil3:coil-compose:3.0.4")
             implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
+            implementation(libs.jetbrains.navigation3.ui)
+            implementation(libs.jetbrains.material3.adaptiveNavigation3)
+            implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.logback.classic)
             implementation("org.openjfx:javafx-base:19.0.2:$fxPlatform")
             implementation("org.openjfx:javafx-graphics:19.0.2:$fxPlatform")
             implementation("org.openjfx:javafx-media:19.0.2:$fxPlatform")
             implementation("org.openjfx:javafx-swing:19.0.2:$fxPlatform")
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -52,6 +69,12 @@ kotlin {
     }
 }
 
+
+android {
+    namespace = "id.neotica.orpheum.uploader.shared"
+    compileSdk = 36
+    defaultConfig { minSdk = 31 }
+}
 
 compose.desktop {
     application {

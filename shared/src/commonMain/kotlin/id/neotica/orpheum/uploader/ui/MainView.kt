@@ -27,13 +27,13 @@ import id.neotica.orpheum.uploader.ui.components.DarkBackground
 import id.neotica.orpheum.uploader.ui.components.DarkPrimary
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumHostView
-import id.neotica.orpheum.uploader.ui.feature.upload.UploadView
 import id.neotica.orpheum.uploader.ui.navigation.AppNavigationRail
 import id.neotica.orpheum.uploader.ui.navigation.MainScreenType
 
 @Composable
 fun MainView(
-    onLogout: () -> Unit = {}
+    onLogout: () -> Unit = {},
+    uploadView: @Composable () -> Unit = {}
 ) {
     var screenTypeDropdownExpanded by remember { mutableStateOf(false) }
     var moreDropdownExpanded by remember { mutableStateOf(false) }
@@ -135,7 +135,7 @@ fun MainView(
                         .padding(paddingValues)
                 ) {
                     when (screenType) {
-                        MainScreenType.UPLOADER -> UploadView()
+                        MainScreenType.UPLOADER -> uploadView()
                         MainScreenType.TRACK_FEED -> TrackFeedView()
                         MainScreenType.ALBUM_MANAGER -> AlbumHostView()
                     }
