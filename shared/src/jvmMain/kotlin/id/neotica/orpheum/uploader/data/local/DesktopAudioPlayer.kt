@@ -5,53 +5,48 @@ import javax.swing.SwingUtilities
 import javafx.embed.swing.JFXPanel
 import javafx.scene.media.MediaPlayer
 import javafx.scene.media.Media
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 class DesktopAudioPlayer : AudioPlayer {
 
     private val _isPlaying = MutableStateFlow(false)
     override val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
-    private val _playbackProgress = MutableStateFlow(0f) // 0.0 to 1.0
+    private val _playbackProgress = MutableStateFlow(0f)
     override val playbackProgress: StateFlow<Float> = _playbackProgress.asStateFlow()
 
     private var mediaPlayer: MediaPlayer? = null
+    private var progressJob: Job? = null
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     init {
-        // Compose Desktop does not run JavaFX by default.
-        // Instantiating JFXPanel on the Swing thread initializes the JavaFX toolkit headlessly.
         SwingUtilities.invokeLater { JFXPanel() }
     }
 
     override fun play(url: String) {
-        stop() // Clear previous track if any
+        stop()
 
-        // JavaFX requires UI thread or its own thread for initialization
         javafx.application.Platform.runLater {
             try {
                 val media = Media(url)
                 mediaPlayer = MediaPlayer(media).apply {
-
                     setOnReady {
                         play()
                         _isPlaying.update { true }
                     }
-
-                    currentTimeProperty().addListener { _, _, newValue ->
-                        val totalDuration = totalDuration.toMillis()
-                        if (totalDuration > 0) {
-                            _playbackProgress.update { (newValue.toMillis() / totalDuration).toFloat() }
-                        }
-                    }
-
                     setOnEndOfMedia {
                         _isPlaying.update { false }
                         _playbackProgress.update { 1f }
                     }
-
                     setOnError {
                         println("JavaFX Audio Error: ${error.message}")
                         _isPlaying.update { false }
@@ -61,6 +56,7 @@ class DesktopAudioPlayer : AudioPlayer {
                 println("Failed to load media: ${e.message}")
             }
         }
+        startProgressPolling()
     }
 
     override fun pause() {
@@ -78,6 +74,7 @@ class DesktopAudioPlayer : AudioPlayer {
     }
 
     override fun stop() {
+        stopProgressPolling()
         javafx.application.Platform.runLater {
             mediaPlayer?.stop()
             mediaPlayer?.dispose()
@@ -91,5 +88,31 @@ class DesktopAudioPlayer : AudioPlayer {
         javafx.application.Platform.runLater {
             mediaPlayer?.seek(javafx.util.Duration.seconds(seconds.toDouble()))
         }
+    }
+
+    private fun startProgressPolling() {
+        progressJob?.cancel()
+        progressJob = scope.launch {
+            while (true) {
+                delay(250)
+                javafx.application.Platform.runLater {
+                    val mp = mediaPlayer
+                    if (mp != null) {
+                        val total = mp.totalDuration.toMillis() // Double
+                        val current = mp.currentTime.toMillis() // Double
+                        if (total > 0.0) {
+                            _playbackProgress.update {
+                                (current.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun stopProgressPolling() {
+        progressJob?.cancel()
+        progressJob = null
     }
 }

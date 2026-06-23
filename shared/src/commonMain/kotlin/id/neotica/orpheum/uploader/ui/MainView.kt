@@ -2,6 +2,7 @@ package id.neotica.orpheum.uploader.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -32,6 +33,7 @@ import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedView
 import id.neotica.orpheum.uploader.ui.feature.playback.MiniPlayerBar
 import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
 import id.neotica.orpheum.uploader.ui.feature.upload.PlatformUploadView
+import id.neotica.orpheum.uploader.ui.navigation.AppNavigationBar
 import id.neotica.orpheum.uploader.ui.navigation.AppNavigationRail
 import id.neotica.orpheum.uploader.ui.navigation.Screen
 import org.koin.compose.koinInject
@@ -91,70 +93,113 @@ private fun MainShell(
     val playbackViewModel = koinInject<PlaybackViewModel>()
 
     MaterialTheme {
-        Scaffold(
-            topBar = {
-                Column {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = when (screen) {
-                                    is Screen.Feed -> "Track Feed"
-                                    is Screen.Albums -> "Album Manager"
-                                    is Screen.Account -> "Account"
-                                    else -> "Orpheum Uploader"
-                                },
-                                color = DarkPrimary,
-                            )
-                        },
-                        navigationIcon = {
-                            if (backStackSize > 1) {
-                                IconButton(onClick = { /* handled by NavDisplay's onBack */ }) {
-                                    Text("\u2B05\uFE0F", color = DarkPrimary)
-                                }
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors().copy(
-                            containerColor = DarkBackground
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val isCompact = maxWidth < 600.dp
+
+            if (isCompact) {
+                Scaffold(
+                    topBar = { MainTopBar(screen, backStackSize) },
+                    bottomBar = {
+                        AppNavigationBar(
+                            currentScreen = screen,
+                            onNavigate = onNavigate,
                         )
-                    )
-                    HorizontalDivider(Modifier, thickness = 2.dp, color = DarkPrimary)
-                }
-            }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(DarkBackground)
-                    .padding(paddingValues)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    AppNavigationRail(
-                        currentScreen = screen,
-                        onNavigate = onNavigate,
-                    )
-                    Column(
+                    }
+                ) { paddingValues ->
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .weight(1f)
                             .background(DarkBackground)
+                            .padding(paddingValues)
                     ) {
-                        when (screen) {
-                            Screen.Upload -> PlatformUploadView()
-                            Screen.Feed -> TrackFeedView(playbackViewModel = playbackViewModel)
-                            Screen.Albums -> AlbumFeedView(onAlbumClick = onAlbumClick)
-                            Screen.Account -> AccountView(onLogout = onLogout)
-                            else -> {}
-                        }
+                        MainContent(screen, onAlbumClick, onLogout, playbackViewModel)
+
+                        MiniPlayerBar(
+                            playbackViewModel = playbackViewModel,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
                     }
                 }
+            } else {
+                Scaffold(
+                    topBar = { MainTopBar(screen, backStackSize) }
+                ) { paddingValues ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(DarkBackground)
+                            .padding(paddingValues)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            AppNavigationRail(
+                                currentScreen = screen,
+                                onNavigate = onNavigate,
+                            )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .weight(1f)
+                                    .background(DarkBackground)
+                            ) {
+                                MainContent(screen, onAlbumClick, onLogout, playbackViewModel)
+                            }
+                        }
 
-                MiniPlayerBar(
-                    playbackViewModel = playbackViewModel,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
+                        MiniPlayerBar(
+                            playbackViewModel = playbackViewModel,
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+private fun MainTopBar(screen: Screen, backStackSize: Int) {
+    Column {
+        TopAppBar(
+            title = {
+                Text(
+                    text = when (screen) {
+                        is Screen.Feed -> "Track Feed"
+                        is Screen.Albums -> "Album Manager"
+                        is Screen.Account -> "Account"
+                        else -> "Orpheum Uploader"
+                    },
+                    color = DarkPrimary,
+                )
+            },
+            navigationIcon = {
+                if (backStackSize > 1) {
+                    IconButton(onClick = { /* handled by NavDisplay's onBack */ }) {
+                        Text("\u2B05\uFE0F", color = DarkPrimary)
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.topAppBarColors().copy(
+                containerColor = DarkBackground
+            )
+        )
+        HorizontalDivider(Modifier, thickness = 2.dp, color = DarkPrimary)
+    }
+}
+
+@Composable
+private fun MainContent(
+    screen: Screen,
+    onAlbumClick: (String) -> Unit,
+    onLogout: () -> Unit,
+    playbackViewModel: PlaybackViewModel,
+) {
+    when (screen) {
+        Screen.Upload -> PlatformUploadView()
+        Screen.Feed -> TrackFeedView(playbackViewModel = playbackViewModel)
+        Screen.Albums -> AlbumFeedView(onAlbumClick = onAlbumClick)
+        Screen.Account -> AccountView(onLogout = onLogout)
+        else -> {}
     }
 }
