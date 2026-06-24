@@ -173,4 +173,19 @@ class CatalogRepositoryImpl(
     } catch (e: Exception) {
         Result.failure(e)
     }
+
+    override suspend fun searchTracks(query: String, page: Int, limit: Int): Result<TrackFeedResponse> = try {
+        val response = httpClient.get("$baseUrl/catalog/search") {
+            parameter("q", query)
+            parameter("page", page)
+            parameter("limit", limit)
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Search failed: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
 }

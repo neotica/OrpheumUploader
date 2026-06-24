@@ -87,7 +87,7 @@ fun TrackFeedView(
 }
 
 @Composable
-internal fun TrackCompactItem(
+fun TrackCompactItem(
     track: TrackRemoteModel,
     isActive: Boolean,
     onClick: () -> Unit

@@ -32,6 +32,7 @@ interface CatalogRepository {
     suspend fun getNewReleases(page: Int = 1, limit: Int = 10): Result<TrackFeedResponse>
     suspend fun getAlbums(page: Int = 1, limit: Int = 20): Result<AlbumFeedResponse>
     suspend fun getAlbumDetails(albumId: String): Result<AlbumDetailResponse>
-    suspend fun updateAlbum(albumId: String, request: UpdateAlbumRequest): Result<AlbumRemoteModel> // Or just Result<String> depending on what you need
+    suspend fun updateAlbum(albumId: String, request: UpdateAlbumRequest): Result<AlbumRemoteModel>
     suspend fun deleteAlbum(albumId: String): Result<String>
+    suspend fun searchTracks(query: String, page: Int = 1, limit: Int = 20): Result<TrackFeedResponse>
 }

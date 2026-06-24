@@ -32,6 +32,7 @@ import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedView
 import id.neotica.orpheum.uploader.ui.feature.playback.MiniPlayerBar
 import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
+import id.neotica.orpheum.uploader.ui.feature.search.SearchView
 import id.neotica.orpheum.uploader.ui.feature.upload.PlatformUploadView
 import id.neotica.orpheum.uploader.ui.navigation.AppNavigationBar
 import id.neotica.orpheum.uploader.ui.navigation.AppNavigationRail
@@ -162,17 +163,18 @@ private fun MainShell(
 private fun MainTopBar(screen: Screen, backStackSize: Int) {
     Column {
         TopAppBar(
-            title = {
-                Text(
-                    text = when (screen) {
-                        is Screen.Feed -> "Track Feed"
-                        is Screen.Albums -> "Album Manager"
-                        is Screen.Account -> "Account"
-                        else -> "Orpheum Uploader"
-                    },
-                    color = DarkPrimary,
-                )
-            },
+        title = {
+            Text(
+                text = when (screen) {
+                    is Screen.Feed -> "Track Feed"
+                    is Screen.Search -> "Search"
+                    is Screen.Albums -> "Album Manager"
+                    is Screen.Account -> "Account"
+                    else -> "Orpheum Uploader"
+                },
+                color = DarkPrimary,
+            )
+        },
             navigationIcon = {
                 if (backStackSize > 1) {
                     IconButton(onClick = { /* handled by NavDisplay's onBack */ }) {
@@ -197,6 +199,7 @@ private fun MainContent(
 ) {
     when (screen) {
         Screen.Upload -> PlatformUploadView()
+        Screen.Search -> SearchView(playbackViewModel = playbackViewModel)
         Screen.Feed -> TrackFeedView(playbackViewModel = playbackViewModel)
         Screen.Albums -> AlbumFeedView(onAlbumClick = onAlbumClick)
         Screen.Account -> AccountView(onLogout = onLogout)

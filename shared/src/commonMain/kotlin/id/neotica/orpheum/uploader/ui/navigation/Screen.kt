@@ -11,5 +11,6 @@ sealed interface Screen : NavKey {
     @Serializable data object Feed : Screen
     @Serializable data object Albums : Screen
     @Serializable data class AlbumDetail(val albumId: String) : Screen
+    @Serializable data object Search : Screen
     @Serializable data object Account : Screen
 }
