@@ -11,6 +11,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
+            android:icon="@drawable/ic_launcher"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

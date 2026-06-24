@@ -58,7 +58,7 @@ fun AlbumFeedItem(
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = album.artistId,
+                    text = album.artistName,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

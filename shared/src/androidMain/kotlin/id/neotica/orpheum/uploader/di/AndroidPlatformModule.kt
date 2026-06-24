@@ -1,8 +1,10 @@
 package id.neotica.orpheum.uploader.di
 
 import id.neotica.orpheum.uploader.data.local.AndroidAudioPlayer
+import id.neotica.orpheum.uploader.data.local.AndroidMediaSessionController
 import id.neotica.orpheum.uploader.data.local.AndroidTokenStorage
 import id.neotica.orpheum.uploader.domain.local.AudioPlayer
+import id.neotica.orpheum.uploader.domain.local.MediaSessionController
 import id.neotica.orpheum.uploader.domain.local.TokenStorage
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
@@ -22,6 +24,7 @@ import org.koin.dsl.module
 actual val platformModule: Module = module {
     single<TokenStorage> { AndroidTokenStorage(get()) }
     single<AudioPlayer> { AndroidAudioPlayer() }
+    single<MediaSessionController> { AndroidMediaSessionController(get()) }
     single<HttpClient> {
         HttpClient(OkHttp) {
             install(ContentNegotiation) {

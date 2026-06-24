@@ -10,5 +10,6 @@ data class AlbumRemoteModel(
     val title: String,
     @SerialName("release_year") val releaseYear: Int,
     @SerialName("cover_url") val coverUrl: String? = null,
-    @SerialName("created_at") val createdAt: String? = null
+    @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("artist_name") val artistName: String
 )

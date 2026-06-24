@@ -1,19 +1,16 @@
 package id.neotica.orpheum.uploader.ui.feature.albumdetail
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
+import java.io.File
 
 @Composable
 actual fun AlbumDetailView(
@@ -21,41 +18,49 @@ actual fun AlbumDetailView(
     onNavigateBack: () -> Unit,
     viewModel: AlbumDetailViewModel?
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Album Detail") },
-                navigationIcon = {
-                    TextButton(onClick = onNavigateBack) {
-                        Text("\u2B05\uFE0F", style = MaterialTheme.typography.titleMedium)
-                    }
+    val resolvedViewModel = viewModel ?: koinViewModel(key = albumId) { parametersOf(albumId) }
+    val state by resolvedViewModel.state.collectAsState()
+    val context = LocalContext.current
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            try {
+                val name = resolveFileName(it, context) ?: "cover_${System.currentTimeMillis()}"
+                val temp = File(context.cacheDir, name)
+                context.contentResolver.openInputStream(it)?.use { input ->
+                    temp.outputStream().use { output -> input.copyTo(output) }
                 }
-            )
-        }
-    ) { padding ->
-        Box(
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = "Album Detail",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = "ID: $albumId",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp),
-                )
-                Text(
-                    text = "Android implementation coming soon",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
+                resolvedViewModel.setCoverFile(temp)
+            } catch (_: Exception) {
+                resolvedViewModel.setCoverFile(null)
             }
         }
     }
+
+    LaunchedEffect(state.isDeleted) {
+        if (state.isDeleted) onNavigateBack()
+    }
+
+    AdaptiveAlbumDetailView(
+        state = state,
+        onNavigateBack = onNavigateBack,
+        onDelete = resolvedViewModel::deleteAlbum,
+        onSave = resolvedViewModel::saveChanges,
+        onUpdateTitle = resolvedViewModel::updateTitle,
+        onUpdateYear = resolvedViewModel::updateYear,
+        onPickImage = { imagePickerLauncher.launch("image/*") },
+    )
+}
+
+private fun resolveFileName(uri: android.net.Uri, context: android.content.Context): String? {
+    val cursor = context.contentResolver.query(uri, null, null, null, null)
+    cursor?.use {
+        if (it.moveToFirst()) {
+            val nameIndex = it.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (nameIndex >= 0) return it.getString(nameIndex)
+        }
+    }
+    return uri.lastPathSegment
 }
