@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val appVersion = (System.getenv("GITHUB_REF_NAME") ?: "1.1.0").removePrefix("v")
+
 android {
     namespace = "id.neotica.orpheum.uploader"
     compileSdk = 36
@@ -14,7 +16,7 @@ android {
         minSdk = 31
         targetSdk = 36
         versionCode = 1
-        versionName = "1.1.0"
+        versionName = appVersion
     }
 
     buildFeatures {
@@ -43,4 +45,6 @@ dependencies {
     implementation(project(":shared"))
     implementation("androidx.activity:activity-compose:1.9.0")
     implementation("io.insert-koin:koin-android:4.0.1")
+    implementation("io.coil-kt.coil3:coil-compose:3.0.4")
+    implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
 }

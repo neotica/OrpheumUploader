@@ -10,6 +10,7 @@ data class UploadUiState(
     // Album Data
     val albumTitle: String = "",
     val releaseYear: String = "",
+    val selectedCoverFile: File? = null,
 
     // Track & File Data
     val trackTitle: String = "",

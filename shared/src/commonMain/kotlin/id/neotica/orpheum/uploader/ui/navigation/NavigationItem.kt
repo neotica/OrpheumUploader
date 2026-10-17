@@ -11,5 +11,6 @@ val navItems = listOf(
     NavItem(Screen.Search, "Search", "\uD83D\uDD0D"),
     NavItem(Screen.Feed, "Feed", "\uD83D\uDCCB"),
     NavItem(Screen.Albums, "Albums", "\uD83D\uDCBF"),
+    NavItem(Screen.Playlists, "Playlists", "\uD83C\uDFA7"),
     NavItem(Screen.Account, "Account", "\uD83D\uDC64"),
 )

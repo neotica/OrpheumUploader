@@ -29,6 +29,7 @@ actual fun AlbumDetailView(
 ) {
     val resolvedViewModel = viewModel ?: koinViewModel(key = albumId) { parametersOf(albumId) }
     val state by resolvedViewModel.state.collectAsState()
+    val currentTrack by resolvedViewModel.currentTrack.collectAsState()
     val dropTarget = remember {
         object : DragAndDropTarget {
             override fun onStarted(event: DragAndDropEvent) {}
@@ -73,6 +74,9 @@ actual fun AlbumDetailView(
                 val file = chooseNativeImage()
                 if (file != null) resolvedViewModel.setCoverFile(file)
             },
+            currentTrackId = currentTrack?.id,
+            onTrackClick = resolvedViewModel::playTrack,
+            onDeleteTrack = resolvedViewModel::deleteTrack,
         )
     }
 }

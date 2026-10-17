@@ -1,6 +1,7 @@
 package id.neotica.orpheum.uploader.ui.feature.search
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -74,6 +75,16 @@ fun SearchView(
             onValueChange = viewModel::onQueryChanged,
             placeholder = { Text("Search by title or artist...", color = Color.Gray) },
             singleLine = true,
+            trailingIcon = {
+                if (state.query.isNotEmpty()) {
+                    Text(
+                        text = "\u2716\uFE0F",
+                        modifier = Modifier
+                            .clickable { viewModel.clearQuery() }
+                            .padding(8.dp)
+                    )
+                }
+            },
             modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Color.White,
@@ -99,7 +110,13 @@ fun SearchView(
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 16.dp)
             )
-        } else if (!state.isLoading && state.query.isNotBlank() && state.results.isEmpty()) {
+        } else if (!state.isLoading && state.query.isNotBlank() && state.query.length < 2) {
+            Text(
+                "Type at least 2 characters to search",
+                color = Color.Gray,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        } else if (!state.isLoading && state.query.length >= 2 && state.results.isEmpty()) {
             Text(
                 "No results found",
                 color = Color.Gray,

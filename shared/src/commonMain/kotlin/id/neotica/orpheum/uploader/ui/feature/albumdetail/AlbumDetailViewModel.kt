@@ -3,8 +3,10 @@ package id.neotica.orpheum.uploader.ui.feature.albumdetail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumRequest
+import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteModel
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.domain.remote.UploadRepository
+import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,16 +17,38 @@ import java.io.File
 class AlbumDetailViewModel(
     private val albumId: String,
     private val catalogRepository: CatalogRepository,
-    private val uploadRepository: UploadRepository
+    private val uploadRepository: UploadRepository,
+    private val playbackViewModel: PlaybackViewModel
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AlbumDetailUiState())
     val state: StateFlow<AlbumDetailUiState> = _state.asStateFlow()
 
+    val currentTrack: StateFlow<TrackRemoteModel?> = playbackViewModel.currentTrack
+
     private val bucketName = "orpheum"
 
     init {
         loadDetails()
+    }
+
+    fun playTrack(track: TrackRemoteModel) {
+        playbackViewModel.play(track)
+    }
+
+    fun deleteTrack(track: TrackRemoteModel) {
+        viewModelScope.launch {
+            catalogRepository.deleteTrack(track.id)
+                .onSuccess {
+                    if (currentTrack.value?.id == track.id) {
+                        playbackViewModel.stop()
+                    }
+                    loadDetails()
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(errorMessage = "Delete Track Failed: ${error.message}") }
+                }
+        }
     }
 
     private fun loadDetails() {

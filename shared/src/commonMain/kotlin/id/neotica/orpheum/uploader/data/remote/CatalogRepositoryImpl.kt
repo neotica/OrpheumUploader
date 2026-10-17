@@ -8,6 +8,11 @@ import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumReque
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumDetailResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
+import id.neotica.orpheum.uploader.domain.model.playlist.CreatePlaylistRequest
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistFeedResponse
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistRemoteModel
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistTrackRequest
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistWithTracksResponse
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
 import io.ktor.client.HttpClient
@@ -174,6 +179,17 @@ class CatalogRepositoryImpl(
         Result.failure(e)
     }
 
+    override suspend fun deleteTrack(trackId: String): Result<String> = try {
+        val response = httpClient.delete("$baseUrl/admin/tracks/$trackId")
+        if (response.status.isSuccess()) {
+            Result.success("Track deleted successfully")
+        } else {
+            Result.failure(Exception("Failed to delete track: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
     override suspend fun searchTracks(query: String, page: Int, limit: Int): Result<TrackFeedResponse> = try {
         val response = httpClient.get("$baseUrl/catalog/search") {
             parameter("q", query)
@@ -184,6 +200,70 @@ class CatalogRepositoryImpl(
             Result.success(response.body())
         } else {
             Result.failure(Exception("Search failed: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getPlaylists(page: Int, limit: Int): Result<PlaylistFeedResponse> = try {
+        val response = httpClient.get("$baseUrl/playlists") {
+            parameter("page", page)
+            parameter("limit", limit)
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch playlists: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getPlaylist(slug: String): Result<PlaylistWithTracksResponse> = try {
+        val response = httpClient.get("$baseUrl/playlists/$slug")
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to load playlist: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun createPlaylist(title: String, description: String?, isPublic: Boolean?): Result<PlaylistRemoteModel> = try {
+        val response = httpClient.post("$baseUrl/playlists") {
+            contentType(ContentType.Application.Json)
+            setBody(CreatePlaylistRequest(title, description, isPublic))
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to create playlist: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun addTrackToPlaylist(slug: String, trackId: String): Result<String> = try {
+        val response = httpClient.post("$baseUrl/playlists/$slug/tracks") {
+            contentType(ContentType.Application.Json)
+            setBody(PlaylistTrackRequest(trackId))
+        }
+        if (response.status.isSuccess()) {
+            Result.success("Track added to playlist")
+        } else {
+            Result.failure(Exception("Failed to add track: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun removeTrackFromPlaylist(slug: String, trackId: String): Result<String> = try {
+        val response = httpClient.delete("$baseUrl/playlists/$slug/tracks/$trackId")
+        if (response.status.isSuccess()) {
+            Result.success("Track removed from playlist")
+        } else {
+            Result.failure(Exception("Failed to remove track: ${response.status}"))
         }
     } catch (e: Exception) {
         Result.failure(e)

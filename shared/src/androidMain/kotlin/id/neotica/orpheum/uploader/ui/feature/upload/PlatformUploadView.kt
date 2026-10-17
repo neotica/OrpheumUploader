@@ -15,28 +15,43 @@ actual fun PlatformUploadView() {
     val viewModel = koinViewModel<UploadViewModel>()
     val context = LocalContext.current
 
-    val launcher = rememberLauncherForActivityResult(
+    val audioLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
         uri?.let {
-            try {
-                val name = resolveDisplayName(it, context) ?: "audio_${System.currentTimeMillis()}"
-                val temp = File(context.cacheDir, name)
-                context.contentResolver.openInputStream(it)?.use { input ->
-                    temp.outputStream().use { output -> input.copyTo(output) }
-                }
-                viewModel.setFile(temp)
-            } catch (_: Exception) {
-                viewModel.setFile(null)
-            }
+            viewModel.setFile(copyUriToCache(it, context, "audio_${System.currentTimeMillis()}"))
+        }
+    }
+
+    val coverLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            viewModel.setCoverFile(copyUriToCache(it, context, "cover_${System.currentTimeMillis()}"))
         }
     }
 
     AdaptiveUploadView(
         viewModel = viewModel,
-        onPickFile = { launcher.launch("audio/*") },
+        onPickFile = { audioLauncher.launch("audio/*") },
+        onPickCover = { coverLauncher.launch("image/*") },
         modifier = Modifier.fillMaxSize(),
     )
+}
+
+private fun copyUriToCache(
+    uri: android.net.Uri,
+    context: android.content.Context,
+    fallbackName: String,
+): File? = try {
+    val name = resolveDisplayName(uri, context) ?: fallbackName
+    val temp = File(context.cacheDir, name)
+    context.contentResolver.openInputStream(uri)?.use { input ->
+        temp.outputStream().use { output -> input.copyTo(output) }
+    }
+    temp
+} catch (_: Exception) {
+    null
 }
 
 private fun resolveDisplayName(uri: android.net.Uri, context: android.content.Context): String? {

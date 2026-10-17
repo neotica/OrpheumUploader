@@ -23,13 +23,30 @@ class TrackFeedViewModel(
         loadFeed()
     }
 
-    private fun loadFeed() {
+    private fun loadFeed() = loadPage(page = 1, append = false)
+
+    fun loadMore() {
+        val currentState = _state.value
+        if (!currentState.hasMore || currentState.isLoading) return
+        loadPage(page = currentState.currentPage + 1, append = true)
+    }
+
+    private fun loadPage(page: Int, append: Boolean) {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-            repository.getNewReleases()
+            repository.getNewReleases(page = page)
                 .onSuccess { response ->
-                    _state.update { it.copy(tracks = response.data, isLoading = false) }
+                    _state.update {
+                        val combined = if (append) it.tracks + response.data else response.data
+                        it.copy(
+                            tracks = combined,
+                            isLoading = false,
+                            currentPage = response.page,
+                            totalPages = response.totalPages,
+                            hasMore = response.page < response.totalPages
+                        )
+                    }
                 }
                 .onFailure { error ->
                     _state.update { it.copy(isLoading = false, errorMessage = error.message) }

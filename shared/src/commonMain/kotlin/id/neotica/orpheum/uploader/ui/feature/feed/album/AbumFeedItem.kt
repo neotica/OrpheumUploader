@@ -1,6 +1,8 @@
 package id.neotica.orpheum.uploader.ui.feature.feed.album
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -20,7 +22,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
-import id.neotica.orpheum.uploader.utils.Constants.BASE_URL_BUCKET_PUBLIC
+import id.neotica.orpheum.uploader.utils.resolveMediaUrl
 
 @Composable
 fun AlbumFeedItem(
@@ -39,14 +41,27 @@ fun AlbumFeedItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Cover Art
-            AsyncImage(
-                model = "${BASE_URL_BUCKET_PUBLIC}/${album.coverUrl}",
-                contentDescription = "${album.title} Album Cover",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            )
+            val coverUrl = resolveMediaUrl(album.coverUrl)
+            if (coverUrl != null) {
+                AsyncImage(
+                    model = coverUrl,
+                    contentDescription = "${album.title} Album Cover",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("\uD83D\uDDBC\uFE0F", style = MaterialTheme.typography.titleLarge)
+                }
+            }
 
             Spacer(modifier = Modifier.width(16.dp))
 

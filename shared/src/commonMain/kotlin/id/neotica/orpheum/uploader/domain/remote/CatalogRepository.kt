@@ -5,6 +5,9 @@ import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumReque
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumDetailResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistFeedResponse
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistRemoteModel
+import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistWithTracksResponse
 import java.io.File
 
 interface CatalogRepository {
@@ -34,5 +37,11 @@ interface CatalogRepository {
     suspend fun getAlbumDetails(albumId: String): Result<AlbumDetailResponse>
     suspend fun updateAlbum(albumId: String, request: UpdateAlbumRequest): Result<AlbumRemoteModel>
     suspend fun deleteAlbum(albumId: String): Result<String>
+    suspend fun deleteTrack(trackId: String): Result<String>
     suspend fun searchTracks(query: String, page: Int = 1, limit: Int = 20): Result<TrackFeedResponse>
+    suspend fun getPlaylists(page: Int = 1, limit: Int = 20): Result<PlaylistFeedResponse>
+    suspend fun getPlaylist(slug: String): Result<PlaylistWithTracksResponse>
+    suspend fun createPlaylist(title: String, description: String?, isPublic: Boolean?): Result<PlaylistRemoteModel>
+    suspend fun addTrackToPlaylist(slug: String, trackId: String): Result<String>
+    suspend fun removeTrackFromPlaylist(slug: String, trackId: String): Result<String>
 }

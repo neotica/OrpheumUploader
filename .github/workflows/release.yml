@@ -1,0 +1,79 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.format }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            format: dmg
+            task: :shared:packageDmg
+            artifact_path: shared/build/compose/binaries/**/*.dmg
+          - os: windows-latest
+            format: msi
+            task: :shared:packageMsi
+            artifact_path: shared/build/compose/binaries/**/*.msi
+          - os: ubuntu-latest
+            format: deb
+            task: :shared:packageDeb
+            artifact_path: shared/build/compose/binaries/**/*.deb
+          - os: ubuntu-latest
+            format: apk
+            task: :android:assembleDebug
+            artifact_path: android/build/outputs/apk/debug/android-debug.apk
+
+    env:
+      BASE_URL: ${{ secrets.BASE_URL }}
+      BASE_URL_BUCKET_PUBLIC: ${{ secrets.BASE_URL_BUCKET_PUBLIC }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build ${{ matrix.format }}
+        run: ./gradlew clean ${{ matrix.task }} --no-configuration-cache --no-build-cache
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.format }}
+          path: ${{ matrix.artifact_path }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List Artifacts
+        run: find artifacts -type f
+
+      - name: Create Release & Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

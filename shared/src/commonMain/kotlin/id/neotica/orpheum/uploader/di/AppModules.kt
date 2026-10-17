@@ -11,6 +11,8 @@ import id.neotica.orpheum.uploader.ui.feature.auth.LoginViewModel
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedViewModel
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedViewModel
 import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
+import id.neotica.orpheum.uploader.ui.feature.playlist.PlaylistDetailViewModel
+import id.neotica.orpheum.uploader.ui.feature.playlist.PlaylistsViewModel
 import id.neotica.orpheum.uploader.ui.feature.search.SearchViewModel
 import id.neotica.orpheum.uploader.ui.feature.upload.UploadViewModel
 import id.neotica.orpheum.uploader.utils.Constants.BASE_URL
@@ -41,6 +43,8 @@ val sharedModule = module {
     viewModelOf(::SearchViewModel)
     viewModelOf(::AlbumFeedViewModel)
     viewModelOf(::AlbumDetailViewModel)
+    viewModelOf(::PlaylistsViewModel)
+    viewModelOf(::PlaylistDetailViewModel)
 }
 
 expect val platformModule: Module

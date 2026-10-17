@@ -6,7 +6,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -17,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -29,8 +32,13 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteModel
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,8 +61,13 @@ fun AdaptiveAlbumDetailView(
     onUpdateTitle: (String) -> Unit,
     onUpdateYear: (String) -> Unit,
     onPickImage: () -> Unit,
+    currentTrackId: String? = null,
+    onTrackClick: (TrackRemoteModel) -> Unit = {},
+    onDeleteTrack: (TrackRemoteModel) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    var trackPendingDelete by remember { mutableStateOf<TrackRemoteModel?>(null) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -102,111 +116,300 @@ fun AdaptiveAlbumDetailView(
                     textAlign = TextAlign.Center
                 )
             } else if (state.albumDetails != null) {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                    if (maxWidth >= 840.dp) {
+                        WideAlbumDetailContent(
+                            state = state,
+                            onUpdateTitle = onUpdateTitle,
+                            onUpdateYear = onUpdateYear,
+                            onPickImage = onPickImage,
+                            currentTrackId = currentTrackId,
+                            onTrackClick = onTrackClick,
+                            onTrackDeleteRequest = { track -> trackPendingDelete = track },
+                        )
+                    } else {
+                        StackedAlbumDetailContent(
+                            state = state,
+                            onUpdateTitle = onUpdateTitle,
+                            onUpdateYear = onUpdateYear,
+                            onPickImage = onPickImage,
+                            currentTrackId = currentTrackId,
+                            onTrackClick = onTrackClick,
+                            onTrackDeleteRequest = { track -> trackPendingDelete = track },
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    val pendingDelete = trackPendingDelete
+    if (pendingDelete != null) {
+        AlertDialog(
+            onDismissRequest = { trackPendingDelete = null },
+            title = { Text("Delete track?") },
+            text = { Text("\"${pendingDelete.title}\" will be permanently removed.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteTrack(pendingDelete)
+                    trackPendingDelete = null
+                }) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { trackPendingDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun WideAlbumDetailContent(
+    state: AlbumDetailUiState,
+    onUpdateTitle: (String) -> Unit,
+    onUpdateYear: (String) -> Unit,
+    onPickImage: () -> Unit,
+    currentTrackId: String?,
+    onTrackClick: (TrackRemoteModel) -> Unit,
+    onTrackDeleteRequest: (TrackRemoteModel) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxSize().padding(24.dp),
+        horizontalArrangement = Arrangement.spacedBy(32.dp)
+    ) {
+        // LEFT COLUMN: Cover Art
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text("Cover Art", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+
+            CoverArtSection(
+                selectedFile = state.selectedCoverFile,
+                currentCoverUrl = state.albumDetails?.album?.coverUrl,
+                isLoading = state.isSaving,
+                onPickImage = onPickImage
+            )
+
+            if (state.errorMessage != null) {
+                Text(state.errorMessage, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+
+        // RIGHT COLUMN: Metadata & Tracks
+        Column(
+            modifier = Modifier.weight(2f),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            MetadataCard(
+                editTitle = state.editTitle,
+                editYear = state.editYear,
+                onUpdateTitle = onUpdateTitle,
+                onUpdateYear = onUpdateYear
+            )
+
+            Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                TracklistHeader(trackCount = state.albumDetails?.tracks?.size ?: 0)
+
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize().padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = bottomPlayerPadding(currentTrackId)
                 ) {
-                    item {
-                        CoverArtSection(
-                            selectedFile = state.selectedCoverFile,
-                            currentCoverUrl = state.albumDetails?.album?.coverUrl,
-                            isLoading = state.isSaving,
-                            onPickImage = onPickImage
-                        )
-                        if (state.errorMessage != null) {
-                            Text(
-                                text = state.errorMessage!!,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 8.dp)
-                            )
-                        }
-                    }
-
-                    item {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
-                            ) {
-                                Text(
-                                    "Metadata",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                OutlinedTextField(
-                                    value = state.editTitle,
-                                    onValueChange = onUpdateTitle,
-                                    label = { Text("Album Title") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-
-                                OutlinedTextField(
-                                    value = state.editYear,
-                                    onValueChange = onUpdateYear,
-                                    label = { Text("Release Year") },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-
-                    item {
-                        Text(
-                            text = "Tracklist (${state.albumDetails?.tracks?.size ?: 0})",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
                     items(
                         items = state.albumDetails!!.tracks.sortedBy { it.trackNumber },
                         key = { it.id }
                     ) { track ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                        Text(
-                                            "${track.trackNumber}.",
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Text(
-                                            track.title,
-                                            fontWeight = FontWeight.Medium,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    track.artistName.let { artist ->
-                                        Text(
-                                            text = artist,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(start = 24.dp)
-                                        )
-                                    }
-                                }
-                                Text(
-                                    text = formatDuration(track.durationSeconds),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
+                        TrackRow(
+                            track = track,
+                            isActive = track.id == currentTrackId,
+                            onClick = { onTrackClick(track) },
+                            onDelete = { onTrackDeleteRequest(track) }
+                        )
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StackedAlbumDetailContent(
+    state: AlbumDetailUiState,
+    onUpdateTitle: (String) -> Unit,
+    onUpdateYear: (String) -> Unit,
+    onPickImage: () -> Unit,
+    currentTrackId: String?,
+    onTrackClick: (TrackRemoteModel) -> Unit,
+    onTrackDeleteRequest: (TrackRemoteModel) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+        contentPadding = bottomPlayerPadding(currentTrackId)
+    ) {
+        item {
+            CoverArtSection(
+                selectedFile = state.selectedCoverFile,
+                currentCoverUrl = state.albumDetails?.album?.coverUrl,
+                isLoading = state.isSaving,
+                onPickImage = onPickImage
+            )
+            if (state.errorMessage != null) {
+                Text(
+                    text = state.errorMessage,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+        }
+
+        item {
+            MetadataCard(
+                editTitle = state.editTitle,
+                editYear = state.editYear,
+                onUpdateTitle = onUpdateTitle,
+                onUpdateYear = onUpdateYear
+            )
+        }
+
+        item {
+            TracklistHeader(trackCount = state.albumDetails?.tracks?.size ?: 0)
+        }
+
+        items(
+            items = state.albumDetails!!.tracks.sortedBy { it.trackNumber },
+            key = { it.id }
+        ) { track ->
+            TrackRow(
+                track = track,
+                isActive = track.id == currentTrackId,
+                onClick = { onTrackClick(track) }
+            )
+        }
+    }
+}
+
+private fun bottomPlayerPadding(currentTrackId: String?): PaddingValues =
+    PaddingValues(bottom = if (currentTrackId != null) 88.dp else 0.dp)
+
+@Composable
+private fun MetadataCard(
+    editTitle: String,
+    editYear: String,
+    onUpdateTitle: (String) -> Unit,
+    onUpdateYear: (String) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Text(
+                "Metadata",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+
+            OutlinedTextField(
+                value = editTitle,
+                onValueChange = onUpdateTitle,
+                label = { Text("Album Title") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = editYear,
+                onValueChange = onUpdateYear,
+                label = { Text("Release Year") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+private fun TracklistHeader(trackCount: Int) {
+    Text(
+        text = "Tracklist ($trackCount)",
+        style = MaterialTheme.typography.titleLarge,
+        fontWeight = FontWeight.Bold,
+        modifier = Modifier.padding(bottom = 16.dp)
+    )
+}
+
+@Composable
+private fun TrackRow(
+    track: TrackRemoteModel,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onDelete: (() -> Unit)? = null,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer
+            else MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        "${track.trackNumber}.",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        track.title,
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                track.artistName.let { artist ->
+                    Text(
+                        text = artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 24.dp)
+                    )
+                }
+            }
+
+            if (isActive) {
+                Text(
+                    text = "\u266B",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(end = 12.dp)
+                )
+            }
+
+            Text(
+                text = formatDuration(track.durationSeconds),
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+
+            if (onDelete != null) {
+                Text(
+                    text = "\uD83D\uDDD1\uFE0F",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .clickable(onClick = onDelete)
+                        .padding(start = 12.dp, top = 4.dp, bottom = 4.dp, end = 4.dp)
+                )
             }
         }
     }

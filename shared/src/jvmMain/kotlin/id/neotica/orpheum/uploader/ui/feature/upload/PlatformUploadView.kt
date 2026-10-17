@@ -40,9 +40,17 @@ actual fun PlatformUploadView() {
                 val transferable = event.awtTransferable
                 if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                     val files = transferable.getTransferData(DataFlavor.javaFileListFlavor) as? List<*>
-                    val validFiles = files?.filterIsInstance<File>() ?: emptyList()
-                    if (validFiles.isNotEmpty()) {
-                        viewModel.setFile(validFiles.first())
+                    val droppedFiles = files?.filterIsInstance<File>() ?: emptyList()
+
+                    val droppedImage = droppedFiles.firstOrNull { it.isImageFile() }
+                    if (droppedImage != null) {
+                        viewModel.setCoverFile(droppedImage)
+                        return true
+                    }
+
+                    val droppedAudio = droppedFiles.firstOrNull()
+                    if (droppedAudio != null) {
+                        viewModel.setFile(droppedAudio)
                         return true
                     }
                 }
@@ -65,14 +73,40 @@ actual fun PlatformUploadView() {
                 val file = chooseNativeAudioFile()
                 if (file != null) viewModel.setFile(file)
             },
+            onPickCover = {
+                val file = chooseNativeImageFile()
+                if (file != null) viewModel.setCoverFile(file)
+            },
         )
     }
 }
+
+private fun File.isImageFile(): Boolean =
+    extension.equals("png", true) ||
+        extension.equals("jpg", true) ||
+        extension.equals("jpeg", true) ||
+        extension.equals("webp", true)
 
 private fun chooseNativeAudioFile(): File? {
     val dialog = FileDialog(null as Frame?, "Select Audio File", FileDialog.LOAD)
     dialog.filenameFilter = { _, name ->
         name.endsWith(".mp3", ignoreCase = true) || name.endsWith(".m4a", ignoreCase = true)
+    }
+    dialog.isVisible = true
+
+    val directory = dialog.directory
+    val file = dialog.file
+
+    return if (directory != null && file != null) File(directory, file) else null
+}
+
+private fun chooseNativeImageFile(): File? {
+    val dialog = FileDialog(null as Frame?, "Select Cover Image", FileDialog.LOAD)
+    dialog.setFilenameFilter { _, name ->
+        name.endsWith(".png", true) ||
+            name.endsWith(".jpg", true) ||
+            name.endsWith(".jpeg", true) ||
+            name.endsWith(".webp", true)
     }
     dialog.isVisible = true
 

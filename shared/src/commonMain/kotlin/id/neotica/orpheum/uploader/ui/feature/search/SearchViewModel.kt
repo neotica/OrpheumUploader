@@ -49,6 +49,11 @@ class SearchViewModel(
         _state.update { it.copy(query = query) }
     }
 
+    fun clearQuery() {
+        _queryInput.value = ""
+        _state.update { SearchUiState() }
+    }
+
     fun loadMore() {
         val currentState = _state.value
         if (!currentState.hasMore || currentState.isLoading) return

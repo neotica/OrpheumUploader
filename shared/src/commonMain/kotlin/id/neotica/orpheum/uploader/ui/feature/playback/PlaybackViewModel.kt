@@ -5,6 +5,7 @@ import id.neotica.orpheum.uploader.domain.local.AudioPlayer
 import id.neotica.orpheum.uploader.domain.local.MediaSessionCallback
 import id.neotica.orpheum.uploader.domain.local.MediaSessionController
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteModel
+import id.neotica.orpheum.uploader.utils.Constants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,7 +30,7 @@ class PlaybackViewModel(
         _currentTrack.update { track }
         mediaSession.setTrack(track.title, track.artistName, track.durationSeconds)
         mediaSession.setPlaybackState(true, 0f)
-        val streamUrl = "https://dev.neotica.id/orpheum/stream/${track.id}"
+        val streamUrl = "${Constants.BASE_URL}/orpheum/stream/${track.id}"
         audioPlayer.play(streamUrl)
     }
 

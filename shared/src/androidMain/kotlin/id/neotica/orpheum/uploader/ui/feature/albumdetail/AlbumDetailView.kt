@@ -20,6 +20,7 @@ actual fun AlbumDetailView(
 ) {
     val resolvedViewModel = viewModel ?: koinViewModel(key = albumId) { parametersOf(albumId) }
     val state by resolvedViewModel.state.collectAsState()
+    val currentTrack by resolvedViewModel.currentTrack.collectAsState()
     val context = LocalContext.current
 
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -51,6 +52,9 @@ actual fun AlbumDetailView(
         onUpdateTitle = resolvedViewModel::updateTitle,
         onUpdateYear = resolvedViewModel::updateYear,
         onPickImage = { imagePickerLauncher.launch("image/*") },
+        currentTrackId = currentTrack?.id,
+        onTrackClick = resolvedViewModel::playTrack,
+        onDeleteTrack = resolvedViewModel::deleteTrack,
     )
 }
 

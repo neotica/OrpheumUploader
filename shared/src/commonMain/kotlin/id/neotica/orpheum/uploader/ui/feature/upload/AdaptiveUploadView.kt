@@ -43,6 +43,7 @@ private enum class WidthClass { Compact, Medium, Expanded }
 fun AdaptiveUploadView(
     viewModel: UploadViewModel,
     onPickFile: () -> Unit,
+    onPickCover: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -160,6 +161,18 @@ fun AdaptiveUploadView(
                         }
                     }
 
+                    SectionHeader("Cover Art (Optional)")
+                    FileSelectionArea(
+                        hasFile = state.selectedCoverFile != null,
+                        fileName = state.selectedCoverFile?.name,
+                        isLoading = state.isLoading,
+                        onPickFile = onPickCover,
+                        onClearFile = { viewModel.setCoverFile(null) },
+                        emptyPrompt = "Tap to select cover image (JPG / PNG / WebP)",
+                        emptyIcon = "\uD83D\uDDBC\uFE0F",
+                        selectedIcon = "\uD83D\uDDBC\uFE0F",
+                    )
+
                     HorizontalDivider()
 
                     SectionHeader("Track Information")
@@ -243,6 +256,9 @@ private fun FileSelectionArea(
     isLoading: Boolean,
     onPickFile: () -> Unit,
     onClearFile: () -> Unit,
+    emptyPrompt: String = "Tap to select MP3 / M4A",
+    emptyIcon: String = "\u2601\uFE0F",
+    selectedIcon: String = "\uD83C\uDFB5",
 ) {
     val borderColor = MaterialTheme.colorScheme.outline
     val backgroundColor = Color.Transparent
@@ -260,12 +276,12 @@ private fun FileSelectionArea(
         if (!hasFile) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "\u2601\uFE0F",
+                    text = emptyIcon,
                     fontSize = 36.sp,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
                 Text(
-                    text = "Tap to select MP3 / M4A",
+                    text = emptyPrompt,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodyMedium,
                 )
@@ -275,7 +291,7 @@ private fun FileSelectionArea(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(text = "\uD83C\uDFB5", fontSize = 32.sp)
+                Text(text = selectedIcon, fontSize = 32.sp)
                 Text(
                     text = fileName ?: "",
                     style = MaterialTheme.typography.bodyLarge,

@@ -8,30 +8,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.navigation3.runtime.NavBackStack
-import androidx.navigation3.runtime.NavEntry
-import androidx.navigation3.ui.NavDisplay
-import id.neotica.orpheum.uploader.domain.local.TokenStorage
 import id.neotica.orpheum.uploader.ui.components.DarkBackground
 import id.neotica.orpheum.uploader.ui.components.DarkPrimary
 import id.neotica.orpheum.uploader.ui.feature.account.AccountView
-import id.neotica.orpheum.uploader.ui.feature.albumdetail.AlbumDetailView
-import id.neotica.orpheum.uploader.ui.feature.auth.AuthView
 import id.neotica.orpheum.uploader.ui.feature.feed.TrackFeedView
 import id.neotica.orpheum.uploader.ui.feature.feed.album.AlbumFeedView
-import id.neotica.orpheum.uploader.ui.feature.playback.MiniPlayerBar
+import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackOverlay
 import id.neotica.orpheum.uploader.ui.feature.playback.PlaybackViewModel
+import id.neotica.orpheum.uploader.ui.feature.playlist.PlaylistsView
 import id.neotica.orpheum.uploader.ui.feature.search.SearchView
 import id.neotica.orpheum.uploader.ui.feature.upload.PlatformUploadView
 import id.neotica.orpheum.uploader.ui.navigation.AppNavigationBar
@@ -40,70 +33,24 @@ import id.neotica.orpheum.uploader.ui.navigation.Screen
 import org.koin.compose.koinInject
 
 @Composable
-fun MainView() {
-    val tokenStorage = koinInject<TokenStorage>()
-    val startScreen: Screen = if (tokenStorage.getToken() != null) Screen.Upload else Screen.Auth
-    val backStack = remember { NavBackStack<Screen>(startScreen) }
-
-    NavDisplay(
-        backStack = backStack,
-        entryProvider = { screen ->
-            NavEntry(key = screen) { key ->
-                when (key) {
-                    Screen.Auth -> AuthView(
-                        onLoginSuccess = {
-                            backStack.clear()
-                            backStack.add(Screen.Upload)
-                        }
-                    )
-                    Screen.RegisterApp -> {}
-                    is Screen.AlbumDetail -> AlbumDetailView(
-                        albumId = key.albumId,
-                        onNavigateBack = { backStack.removeLastOrNull() },
-                    )
-                    else -> MainShell(
-                        screen = key,
-                        backStackSize = backStack.size,
-                        onNavigate = { target ->
-                            backStack.clear()
-                            backStack.add(target)
-                        },
-                        onAlbumClick = { albumId ->
-                            backStack.add(Screen.AlbumDetail(albumId))
-                        },
-                        onLogout = {
-                            tokenStorage.clearToken()
-                            backStack.clear()
-                            backStack.add(Screen.Auth)
-                        },
-                    )
-                }
-            }
-        }
-    )
-}
-
-@Composable
-private fun MainShell(
+fun MainView(
     screen: Screen,
-    backStackSize: Int,
-    onNavigate: (Screen) -> Unit,
+    onNavigateTab: (Screen) -> Unit,
     onAlbumClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
     onLogout: () -> Unit,
 ) {
-    val playbackViewModel = koinInject<PlaybackViewModel>()
-
     MaterialTheme {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val isCompact = maxWidth < 600.dp
 
             if (isCompact) {
                 Scaffold(
-                    topBar = { MainTopBar(screen, backStackSize) },
+                    topBar = { MainTopBar() },
                     bottomBar = {
                         AppNavigationBar(
                             currentScreen = screen,
-                            onNavigate = onNavigate,
+                            onNavigate = onNavigateTab,
                         )
                     }
                 ) { paddingValues ->
@@ -113,17 +60,13 @@ private fun MainShell(
                             .background(DarkBackground)
                             .padding(paddingValues)
                     ) {
-                        MainContent(screen, onAlbumClick, onLogout, playbackViewModel)
-
-                        MiniPlayerBar(
-                            playbackViewModel = playbackViewModel,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                        MainContent(screen, onAlbumClick, onPlaylistClick, onLogout)
+                        PlaybackOverlay(modifier = Modifier.align(Alignment.BottomCenter))
                     }
                 }
             } else {
                 Scaffold(
-                    topBar = { MainTopBar(screen, backStackSize) }
+                    topBar = { MainTopBar() }
                 ) { paddingValues ->
                     Box(
                         modifier = Modifier
@@ -136,7 +79,7 @@ private fun MainShell(
                         ) {
                             AppNavigationRail(
                                 currentScreen = screen,
-                                onNavigate = onNavigate,
+                                onNavigate = onNavigateTab,
                             )
                             Column(
                                 modifier = Modifier
@@ -144,14 +87,11 @@ private fun MainShell(
                                     .weight(1f)
                                     .background(DarkBackground)
                             ) {
-                                MainContent(screen, onAlbumClick, onLogout, playbackViewModel)
+                                MainContent(screen, onAlbumClick, onPlaylistClick, onLogout)
                             }
                         }
 
-                        MiniPlayerBar(
-                            playbackViewModel = playbackViewModel,
-                            modifier = Modifier.align(Alignment.BottomCenter)
-                        )
+                        PlaybackOverlay(modifier = Modifier.align(Alignment.BottomCenter))
                     }
                 }
             }
@@ -160,31 +100,16 @@ private fun MainShell(
 }
 
 @Composable
-private fun MainTopBar(screen: Screen, backStackSize: Int) {
+private fun MainTopBar() {
     Column {
         TopAppBar(
-        title = {
-            Text(
-                text = when (screen) {
-                    is Screen.Feed -> "Track Feed"
-                    is Screen.Search -> "Search"
-                    is Screen.Albums -> "Album Manager"
-                    is Screen.Account -> "Account"
-                    else -> "Orpheum Uploader"
-                },
-                color = DarkPrimary,
-            )
-        },
-            navigationIcon = {
-                if (backStackSize > 1) {
-                    IconButton(onClick = { /* handled by NavDisplay's onBack */ }) {
-                        Text("\u2B05\uFE0F", color = DarkPrimary)
-                    }
-                }
+            title = {
+                Text(
+                    text = "Orpheum Uploader",
+                    color = DarkPrimary,
+                )
             },
-            colors = TopAppBarDefaults.topAppBarColors().copy(
-                containerColor = DarkBackground
-            )
+            colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkBackground)
         )
         HorizontalDivider(Modifier, thickness = 2.dp, color = DarkPrimary)
     }
@@ -194,14 +119,17 @@ private fun MainTopBar(screen: Screen, backStackSize: Int) {
 private fun MainContent(
     screen: Screen,
     onAlbumClick: (String) -> Unit,
+    onPlaylistClick: (String) -> Unit,
     onLogout: () -> Unit,
-    playbackViewModel: PlaybackViewModel,
 ) {
+    val playbackViewModel = koinInject<PlaybackViewModel>()
+
     when (screen) {
         Screen.Upload -> PlatformUploadView()
         Screen.Search -> SearchView(playbackViewModel = playbackViewModel)
         Screen.Feed -> TrackFeedView(playbackViewModel = playbackViewModel)
         Screen.Albums -> AlbumFeedView(onAlbumClick = onAlbumClick)
+        Screen.Playlists -> PlaylistsView(onPlaylistClick = onPlaylistClick)
         Screen.Account -> AccountView(onLogout = onLogout)
         else -> {}
     }

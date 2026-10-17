@@ -1,6 +1,8 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.Properties
 
+val appVersion = (System.getenv("GITHUB_REF_NAME") ?: "1.1.0").removePrefix("v")
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
@@ -48,8 +50,6 @@ kotlin {
             implementation("io.coil-kt.coil3:coil-compose:3.0.4")
             implementation("io.coil-kt.coil3:coil-network-ktor3:3.0.4")
             implementation(libs.jetbrains.navigation3.ui)
-            implementation(libs.jetbrains.material3.adaptiveNavigation3)
-            implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
@@ -83,7 +83,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "id.neotica.orpheum.uploader"
-            packageVersion = "1.1.0"
+            packageVersion = appVersion
         }
     }
 }
