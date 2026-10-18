@@ -16,8 +16,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -64,9 +65,12 @@ fun AdaptiveAlbumDetailView(
     currentTrackId: String? = null,
     onTrackClick: (TrackRemoteModel) -> Unit = {},
     onDeleteTrack: (TrackRemoteModel) -> Unit = {},
+    onUpdateTrack: (TrackRemoteModel, String, Int) -> Unit = { _, _, _ -> },
+    onMoveTrack: (TrackRemoteModel, Int) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier,
 ) {
     var trackPendingDelete by remember { mutableStateOf<TrackRemoteModel?>(null) }
+    var trackPendingEdit by remember { mutableStateOf<TrackRemoteModel?>(null) }
 
     Scaffold(
         topBar = {
@@ -126,6 +130,9 @@ fun AdaptiveAlbumDetailView(
                             currentTrackId = currentTrackId,
                             onTrackClick = onTrackClick,
                             onTrackDeleteRequest = { track -> trackPendingDelete = track },
+                            onTrackEditRequest = { track -> trackPendingEdit = track },
+                            onMoveTrack = onMoveTrack,
+                            actionsEnabled = !state.isTrackMutating,
                         )
                     } else {
                         StackedAlbumDetailContent(
@@ -136,6 +143,9 @@ fun AdaptiveAlbumDetailView(
                             currentTrackId = currentTrackId,
                             onTrackClick = onTrackClick,
                             onTrackDeleteRequest = { track -> trackPendingDelete = track },
+                            onTrackEditRequest = { track -> trackPendingEdit = track },
+                            onMoveTrack = onMoveTrack,
+                            actionsEnabled = !state.isTrackMutating,
                         )
                     }
                 }
@@ -164,6 +174,67 @@ fun AdaptiveAlbumDetailView(
             }
         )
     }
+
+    val pendingEdit = trackPendingEdit
+    if (pendingEdit != null) {
+        EditTrackDialog(
+            track = pendingEdit,
+            onDismiss = { trackPendingEdit = null },
+            onSave = { title, number ->
+                onUpdateTrack(pendingEdit, title, number)
+                trackPendingEdit = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun EditTrackDialog(
+    track: TrackRemoteModel,
+    onDismiss: () -> Unit,
+    onSave: (String, Int) -> Unit,
+) {
+    var title by remember { mutableStateOf(track.title) }
+    var numberText by remember { mutableStateOf(track.trackNumber.toString()) }
+
+    val parsedNumber = numberText.toIntOrNull()
+    val isValid = title.isNotBlank() && parsedNumber != null && parsedNumber > 0
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit track") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = numberText,
+                    onValueChange = { input -> numberText = input.filter { it.isDigit() } },
+                    label = { Text("Track Number") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { parsedNumber?.let { onSave(title.trim(), it) } },
+                enabled = isValid
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 @Composable
@@ -175,6 +246,9 @@ private fun WideAlbumDetailContent(
     currentTrackId: String?,
     onTrackClick: (TrackRemoteModel) -> Unit,
     onTrackDeleteRequest: (TrackRemoteModel) -> Unit,
+    onTrackEditRequest: (TrackRemoteModel) -> Unit,
+    onMoveTrack: (TrackRemoteModel, Int) -> Unit,
+    actionsEnabled: Boolean,
 ) {
     Row(
         modifier = Modifier.fillMaxSize().padding(24.dp),
@@ -214,19 +288,25 @@ private fun WideAlbumDetailContent(
             Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
                 TracklistHeader(trackCount = state.albumDetails?.tracks?.size ?: 0)
 
+                val sortedTracks = state.albumDetails!!.tracks.sortedBy { it.trackNumber }
+
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = bottomPlayerPadding(currentTrackId)
                 ) {
-                    items(
-                        items = state.albumDetails!!.tracks.sortedBy { it.trackNumber },
-                        key = { it.id }
-                    ) { track ->
+                    itemsIndexed(
+                        items = sortedTracks,
+                        key = { _, track -> track.id }
+                    ) { index, track ->
                         TrackRow(
                             track = track,
                             isActive = track.id == currentTrackId,
+                            actionsEnabled = actionsEnabled,
                             onClick = { onTrackClick(track) },
+                            onEdit = { onTrackEditRequest(track) },
+                            onMoveUp = { onMoveTrack(track, -1) }.takeIf { index > 0 },
+                            onMoveDown = { onMoveTrack(track, 1) }.takeIf { index < sortedTracks.size - 1 },
                             onDelete = { onTrackDeleteRequest(track) }
                         )
                     }
@@ -245,6 +325,9 @@ private fun StackedAlbumDetailContent(
     currentTrackId: String?,
     onTrackClick: (TrackRemoteModel) -> Unit,
     onTrackDeleteRequest: (TrackRemoteModel) -> Unit,
+    onTrackEditRequest: (TrackRemoteModel) -> Unit,
+    onMoveTrack: (TrackRemoteModel, Int) -> Unit,
+    actionsEnabled: Boolean,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -280,14 +363,21 @@ private fun StackedAlbumDetailContent(
             TracklistHeader(trackCount = state.albumDetails?.tracks?.size ?: 0)
         }
 
-        items(
-            items = state.albumDetails!!.tracks.sortedBy { it.trackNumber },
-            key = { it.id }
-        ) { track ->
+        val sortedTracks = state.albumDetails!!.tracks.sortedBy { it.trackNumber }
+
+        itemsIndexed(
+            items = sortedTracks,
+            key = { _, track -> track.id }
+        ) { index, track ->
             TrackRow(
                 track = track,
                 isActive = track.id == currentTrackId,
-                onClick = { onTrackClick(track) }
+                actionsEnabled = actionsEnabled,
+                onClick = { onTrackClick(track) },
+                onEdit = { onTrackEditRequest(track) },
+                onMoveUp = { onMoveTrack(track, -1) }.takeIf { index > 0 },
+                onMoveDown = { onMoveTrack(track, 1) }.takeIf { index < sortedTracks.size - 1 },
+                onDelete = { onTrackDeleteRequest(track) }
             )
         }
     }
@@ -349,6 +439,10 @@ private fun TrackRow(
     track: TrackRemoteModel,
     isActive: Boolean,
     onClick: () -> Unit,
+    actionsEnabled: Boolean = true,
+    onEdit: (() -> Unit)? = null,
+    onMoveUp: (() -> Unit)? = null,
+    onMoveDown: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
 ) {
     Card(
@@ -402,17 +496,39 @@ private fun TrackRow(
                 color = Color.Gray
             )
 
-            if (onDelete != null) {
-                Text(
-                    text = "\uD83D\uDDD1\uFE0F",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .clickable(onClick = onDelete)
-                        .padding(start = 12.dp, top = 4.dp, bottom = 4.dp, end = 4.dp)
-                )
+            Spacer(Modifier.width(8.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onMoveUp != null) {
+                    TrackAction(text = "\u25B2", enabled = actionsEnabled, onClick = onMoveUp)
+                }
+                if (onMoveDown != null) {
+                    TrackAction(text = "\u25BC", enabled = actionsEnabled, onClick = onMoveDown)
+                }
+                if (onEdit != null) {
+                    TrackAction(text = "\u270F\uFE0F", enabled = actionsEnabled, onClick = onEdit)
+                }
+                if (onDelete != null) {
+                    TrackAction(text = "\uD83D\uDDD1\uFE0F", enabled = actionsEnabled, onClick = onDelete)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun TrackAction(
+    text: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        modifier = Modifier
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 6.dp)
+    )
 }
 
 @Composable

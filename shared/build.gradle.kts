@@ -82,8 +82,18 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "id.neotica.orpheum.uploader"
+            packageName = "Orpheum Uploader"
             packageVersion = appVersion
+
+            macOS {
+                iconFile.set { rootProject.file("media/orpheum.icns") }
+            }
+            windows {
+                iconFile.set { rootProject.file("media/orpheum.ico") }
+            }
+            linux {
+                iconFile.set { rootProject.file("media/orpheum.png") }
+            }
         }
     }
 }

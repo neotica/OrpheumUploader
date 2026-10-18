@@ -77,6 +77,8 @@ actual fun AlbumDetailView(
             currentTrackId = currentTrack?.id,
             onTrackClick = resolvedViewModel::playTrack,
             onDeleteTrack = resolvedViewModel::deleteTrack,
+            onUpdateTrack = resolvedViewModel::updateTrack,
+            onMoveTrack = resolvedViewModel::moveTrack,
         )
     }
 }

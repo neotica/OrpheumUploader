@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,13 +72,24 @@ fun TrackFeedView(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        Text(
-            text = "New Releases",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = DarkPrimary,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "New Releases",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = DarkPrimary
+            )
+
+            IconButton(onClick = { viewModel.refresh() }) {
+                Text("\uD83D\uDD04")
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (feedState.isLoading && feedState.tracks.isEmpty()) {
             CircularProgressIndicator(

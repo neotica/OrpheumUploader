@@ -22,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -92,8 +93,14 @@ fun PlaylistsView(
                 color = DarkPrimary
             )
 
-            Button(onClick = { showCreateDialog = true }) {
-                Text("+ New")
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { viewModel.refresh() }) {
+                    Text("\uD83D\uDD04")
+                }
+
+                Button(onClick = { showCreateDialog = true }) {
+                    Text("+ New")
+                }
             }
         }
 

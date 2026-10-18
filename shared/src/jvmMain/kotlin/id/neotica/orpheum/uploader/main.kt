@@ -13,7 +13,7 @@ fun main() = application {
     initializeKoin()
     Window(
         onCloseRequest = ::exitApplication,
-        title = "OrpheumUploader",
+        title = "Orpheum Uploader",
     ) {
         setComposeWindowProvider {
             window

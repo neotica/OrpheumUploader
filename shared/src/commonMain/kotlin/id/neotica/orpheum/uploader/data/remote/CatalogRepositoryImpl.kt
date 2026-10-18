@@ -4,10 +4,13 @@ import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.ArtistRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.CreationResponse
+import id.neotica.orpheum.uploader.domain.model.catalog.request.ReorderTracksRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumRequest
+import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateTrackRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumDetailResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackFeedResponse
+import id.neotica.orpheum.uploader.domain.model.catalog.response.TrackRemoteModel
 import id.neotica.orpheum.uploader.domain.model.playlist.CreatePlaylistRequest
 import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistFeedResponse
 import id.neotica.orpheum.uploader.domain.model.playlist.PlaylistRemoteModel
@@ -185,6 +188,34 @@ class CatalogRepositoryImpl(
             Result.success("Track deleted successfully")
         } else {
             Result.failure(Exception("Failed to delete track: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun updateTrack(trackId: String, title: String?, trackNumber: Int?): Result<TrackRemoteModel> = try {
+        val response = httpClient.put("$baseUrl/admin/tracks/$trackId") {
+            contentType(ContentType.Application.Json)
+            setBody(UpdateTrackRequest(title, trackNumber))
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to update track: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun reorderTracks(albumId: String, trackIds: List<String>): Result<String> = try {
+        val response = httpClient.put("$baseUrl/admin/albums/$albumId/tracks/reorder") {
+            contentType(ContentType.Application.Json)
+            setBody(ReorderTracksRequest(trackIds))
+        }
+        if (response.status.isSuccess()) {
+            Result.success("Tracks reordered")
+        } else {
+            Result.failure(Exception("Failed to reorder tracks: ${response.status}"))
         }
     } catch (e: Exception) {
         Result.failure(e)

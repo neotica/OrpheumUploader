@@ -51,6 +51,55 @@ class AlbumDetailViewModel(
         }
     }
 
+    fun updateTrack(track: TrackRemoteModel, title: String, trackNumber: Int) {
+        if (_state.value.isTrackMutating) return
+
+        viewModelScope.launch {
+            _state.update { it.copy(isTrackMutating = true, errorMessage = null) }
+
+            catalogRepository.updateTrack(
+                trackId = track.id,
+                title = title.trim().ifBlank { null },
+                trackNumber = trackNumber
+            )
+                .onSuccess {
+                    _state.update { it.copy(isTrackMutating = false) }
+                    loadDetails()
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isTrackMutating = false, errorMessage = "Update Track Failed: ${error.message}") }
+                }
+        }
+    }
+
+    fun moveTrack(track: TrackRemoteModel, direction: Int) {
+        val details = _state.value.albumDetails ?: return
+        if (_state.value.isTrackMutating) return
+
+        val sorted = details.tracks.sortedBy { it.trackNumber }
+        val index = sorted.indexOfFirst { it.id == track.id }
+        if (index < 0) return
+        val targetIndex = index + direction
+        if (targetIndex !in sorted.indices) return
+
+        val reorderedIds = sorted.toMutableList().apply {
+            add(targetIndex, removeAt(index))
+        }.map { it.id }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isTrackMutating = true, errorMessage = null) }
+
+            catalogRepository.reorderTracks(albumId, reorderedIds)
+                .onSuccess {
+                    _state.update { it.copy(isTrackMutating = false) }
+                    loadDetails()
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isTrackMutating = false, errorMessage = "Reorder Failed: ${error.message}") }
+                }
+        }
+    }
+
     private fun loadDetails() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true, errorMessage = null) }

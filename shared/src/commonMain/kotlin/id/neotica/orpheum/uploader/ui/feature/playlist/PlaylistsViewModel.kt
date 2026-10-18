@@ -20,6 +20,11 @@ class PlaylistsViewModel(
         loadPage(page = 1, append = false)
     }
 
+    fun refresh() {
+        if (_state.value.isLoading) return
+        loadPage(page = 1, append = false)
+    }
+
     fun loadMore() {
         val currentState = _state.value
         if (!currentState.hasMore || currentState.isLoading) return

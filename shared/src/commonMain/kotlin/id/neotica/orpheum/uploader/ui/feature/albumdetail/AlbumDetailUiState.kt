@@ -14,5 +14,6 @@ data class AlbumDetailUiState(
     val selectedCoverFile: File? = null,
 
     val isSaving: Boolean = false,
+    val isTrackMutating: Boolean = false,
     val isDeleted: Boolean = false
 )
