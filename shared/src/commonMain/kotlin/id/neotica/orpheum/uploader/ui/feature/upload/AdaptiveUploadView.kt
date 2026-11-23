@@ -13,29 +13,44 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import id.neotica.orpheum.uploader.domain.model.artist.ArtistRemoteModel
+import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 
 private enum class WidthClass { Compact, Medium, Expanded }
 
@@ -48,6 +63,7 @@ fun AdaptiveUploadView(
 ) {
     val state by viewModel.state.collectAsState()
     val scrollState = rememberScrollState()
+    var showArtistPicker by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
         val widthDp = maxWidth
@@ -91,63 +107,108 @@ fun AdaptiveUploadView(
                     verticalArrangement = Arrangement.spacedBy(sectionSpacing),
                 ) {
                     SectionHeader("Artist Information")
-                    OutlinedTextField(
-                        value = state.artistName,
-                        onValueChange = viewModel::updateArtistName,
-                        label = { Text("Artist Name *") },
-                        enabled = !state.isLoading,
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                    )
 
-                    if (widthClass == WidthClass.Compact) {
+                    val selectedArtist = state.selectedArtist
+                    if (selectedArtist == null) {
+                        OutlinedTextField(
+                            value = state.artistName,
+                            onValueChange = viewModel::updateArtistName,
+                            label = { Text("Artist Name *") },
+                            enabled = !state.isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+
                         OutlinedTextField(
                             value = state.artistBio,
                             onValueChange = viewModel::updateArtistBio,
                             label = { Text("Artist Bio (Optional)") },
                             enabled = !state.isLoading,
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 2,
+                            minLines = if (widthClass == WidthClass.Compact) 2 else 3,
                         )
+
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.onArtistPickerOpened()
+                                showArtistPicker = true
+                            },
+                            enabled = !state.isLoading,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text("Select Existing Artist")
+                        }
                     } else {
-                        OutlinedTextField(
-                            value = state.artistBio,
-                            onValueChange = viewModel::updateArtistBio,
-                            label = { Text("Artist Bio (Optional)") },
-                            enabled = !state.isLoading,
+                        Card(
                             modifier = Modifier.fillMaxWidth(),
-                            minLines = 3,
-                        )
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = selectedArtist.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                    )
+                                    val bio = selectedArtist.bio
+                                    if (!bio.isNullOrBlank()) {
+                                        Text(
+                                            text = bio,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
+                                }
+
+                                TextButton(
+                                    onClick = {
+                                        viewModel.onArtistPickerOpened()
+                                        showArtistPicker = true
+                                    },
+                                    enabled = !state.isLoading,
+                                ) {
+                                    Text("Change")
+                                }
+
+                                TextButton(
+                                    onClick = viewModel::clearArtistSelection,
+                                    enabled = !state.isLoading,
+                                ) {
+                                    Text("Create new")
+                                }
+                            }
+                        }
                     }
 
                     HorizontalDivider()
 
                     SectionHeader("Album Information")
-                    if (widthClass == WidthClass.Compact) {
-                        OutlinedTextField(
-                            value = state.albumTitle,
-                            onValueChange = viewModel::updateAlbumTitle,
-                            label = { Text("Album Title *") },
+
+                    if (state.selectedArtist != null) {
+                        AlbumSelector(
+                            selectedAlbum = state.selectedAlbum,
+                            albums = state.artistAlbums,
+                            isLoading = state.isLoadingAlbums,
+                            errorMessage = state.albumsError,
                             enabled = !state.isLoading,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
+                            onSelect = viewModel::selectAlbum,
+                            onCreateNew = viewModel::clearAlbumSelection,
                         )
-                        OutlinedTextField(
-                            value = state.releaseYear,
-                            onValueChange = viewModel::updateReleaseYear,
-                            label = { Text("Year") },
-                            enabled = !state.isLoading,
-                            modifier = Modifier.fillMaxWidth(),
-                            singleLine = true,
-                        )
-                    } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    }
+
+                    val selectedAlbum = state.selectedAlbum
+                    if (selectedAlbum == null) {
+                        if (widthClass == WidthClass.Compact) {
                             OutlinedTextField(
                                 value = state.albumTitle,
                                 onValueChange = viewModel::updateAlbumTitle,
                                 label = { Text("Album Title *") },
                                 enabled = !state.isLoading,
-                                modifier = Modifier.weight(2f),
+                                modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                             )
                             OutlinedTextField(
@@ -155,23 +216,49 @@ fun AdaptiveUploadView(
                                 onValueChange = viewModel::updateReleaseYear,
                                 label = { Text("Year") },
                                 enabled = !state.isLoading,
-                                modifier = Modifier.weight(1f),
+                                modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                             )
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OutlinedTextField(
+                                    value = state.albumTitle,
+                                    onValueChange = viewModel::updateAlbumTitle,
+                                    label = { Text("Album Title *") },
+                                    enabled = !state.isLoading,
+                                    modifier = Modifier.weight(2f),
+                                    singleLine = true,
+                                )
+                                OutlinedTextField(
+                                    value = state.releaseYear,
+                                    onValueChange = viewModel::updateReleaseYear,
+                                    label = { Text("Year") },
+                                    enabled = !state.isLoading,
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                )
+                            }
                         }
-                    }
 
-                    SectionHeader("Cover Art (Optional)")
-                    FileSelectionArea(
-                        hasFile = state.selectedCoverFile != null,
-                        fileName = state.selectedCoverFile?.name,
-                        isLoading = state.isLoading,
-                        onPickFile = onPickCover,
-                        onClearFile = { viewModel.setCoverFile(null) },
-                        emptyPrompt = "Tap to select cover image (JPG / PNG / WebP)",
-                        emptyIcon = "\uD83D\uDDBC\uFE0F",
-                        selectedIcon = "\uD83D\uDDBC\uFE0F",
-                    )
+                        SectionHeader("Cover Art (Optional)")
+                        FileSelectionArea(
+                            hasFile = state.selectedCoverFile != null,
+                            fileName = state.selectedCoverFile?.name,
+                            isLoading = state.isLoading,
+                            onPickFile = onPickCover,
+                            onClearFile = { viewModel.setCoverFile(null) },
+                            emptyPrompt = "Tap to select cover image (JPG / PNG / WebP)",
+                            emptyIcon = "\uD83D\uDDBC\uFE0F",
+                            selectedIcon = "\uD83D\uDDBC\uFE0F",
+                        )
+                    } else {
+                        Text(
+                            text = "Release Year: ${selectedAlbum.releaseYear}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
 
                     HorizontalDivider()
 
@@ -238,6 +325,25 @@ fun AdaptiveUploadView(
             }
         }
     }
+
+    if (showArtistPicker) {
+        ArtistPickerDialog(
+            artists = state.artists,
+            search = state.artistSearch,
+            isLoading = state.isLoadingArtists,
+            errorMessage = state.artistsError,
+            onSearchChange = viewModel::updateArtistSearch,
+            onSelect = { artist ->
+                viewModel.selectArtist(artist)
+                showArtistPicker = false
+            },
+            onCreateNew = {
+                viewModel.clearArtistSelection()
+                showArtistPicker = false
+            },
+            onDismiss = { showArtistPicker = false },
+        )
+    }
 }
 
 @Composable
@@ -246,6 +352,158 @@ private fun SectionHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.titleMedium,
         color = MaterialTheme.colorScheme.secondary,
+    )
+}
+
+@Composable
+private fun AlbumSelector(
+    selectedAlbum: AlbumRemoteModel?,
+    albums: List<AlbumRemoteModel>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    enabled: Boolean,
+    onSelect: (AlbumRemoteModel) -> Unit,
+    onCreateNew: () -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { expanded = true },
+            enabled = enabled,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = when {
+                    isLoading -> "Loading albums..."
+                    selectedAlbum != null -> "${selectedAlbum.title} (${selectedAlbum.releaseYear})"
+                    else -> "Create new album"
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text("Create new album") },
+                onClick = {
+                    onCreateNew()
+                    expanded = false
+                },
+            )
+
+            albums.forEach { album ->
+                DropdownMenuItem(
+                    text = { Text("${album.title} (${album.releaseYear})") },
+                    onClick = {
+                        onSelect(album)
+                        expanded = false
+                    },
+                )
+            }
+
+            if (albums.isEmpty() && !isLoading) {
+                DropdownMenuItem(
+                    text = { Text("No existing albums") },
+                    onClick = {},
+                    enabled = false,
+                )
+            }
+        }
+    }
+
+    if (errorMessage != null) {
+        Text(
+            text = errorMessage,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
+        )
+    }
+}
+
+@Composable
+private fun ArtistPickerDialog(
+    artists: List<ArtistRemoteModel>,
+    search: String,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onSearchChange: (String) -> Unit,
+    onSelect: (ArtistRemoteModel) -> Unit,
+    onCreateNew: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select artist") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = search,
+                    onValueChange = onSearchChange,
+                    placeholder = { Text("Search artists...") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                when {
+                    isLoading -> Box(
+                        modifier = Modifier.fillMaxWidth().padding(24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+
+                    errorMessage != null -> Text(
+                        text = "Error: $errorMessage",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+
+                    artists.isEmpty() -> Text(
+                        text = "No artists found",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+
+                    else -> LazyColumn(modifier = Modifier.heightIn(max = 320.dp)) {
+                        items(artists, key = { it.id }) { artist ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { onSelect(artist) }
+                                    .padding(vertical = 10.dp, horizontal = 4.dp),
+                            ) {
+                                Text(
+                                    text = artist.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                val bio = artist.bio
+                                if (!bio.isNullOrBlank()) {
+                                    Text(
+                                        text = bio,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onCreateNew) {
+                Text("Create new artist")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
     )
 }
 

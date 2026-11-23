@@ -1,5 +1,6 @@
 package id.neotica.orpheum.uploader.domain.remote
 
+import id.neotica.orpheum.uploader.domain.model.artist.ArtistFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.response.AlbumDetailResponse
@@ -35,6 +36,8 @@ interface CatalogRepository {
     ): Result<String> // Registers and pushes tracking entry
     suspend fun getNewReleases(page: Int = 1, limit: Int = 10): Result<TrackFeedResponse>
     suspend fun getAlbums(page: Int = 1, limit: Int = 20): Result<AlbumFeedResponse>
+    suspend fun getArtists(page: Int = 1, limit: Int = 20, query: String? = null): Result<ArtistFeedResponse>
+    suspend fun getArtistAlbums(artistId: String): Result<List<AlbumRemoteModel>>
     suspend fun getAlbumDetails(albumId: String): Result<AlbumDetailResponse>
     suspend fun updateAlbum(albumId: String, request: UpdateAlbumRequest): Result<AlbumRemoteModel>
     suspend fun deleteAlbum(albumId: String): Result<String>

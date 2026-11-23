@@ -1,5 +1,6 @@
 package id.neotica.orpheum.uploader.data.remote
 
+import id.neotica.orpheum.uploader.domain.model.artist.ArtistFeedResponse
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRequest
 import id.neotica.orpheum.uploader.domain.model.catalog.request.ArtistRequest
@@ -141,6 +142,34 @@ class CatalogRepositoryImpl(
             Result.success(response.body())
         } else {
             Result.failure(Exception("Failed to fetch albums: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getArtists(page: Int, limit: Int, query: String?): Result<ArtistFeedResponse> = try {
+        val response = httpClient.get("$baseUrl/artists") {
+            parameter("page", page)
+            parameter("limit", limit)
+            if (!query.isNullOrBlank()) {
+                parameter("q", query)
+            }
+        }
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch artists: ${response.status}"))
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getArtistAlbums(artistId: String): Result<List<AlbumRemoteModel>> = try {
+        val response = httpClient.get("$baseUrl/artists/$artistId/albums")
+        if (response.status.isSuccess()) {
+            Result.success(response.body())
+        } else {
+            Result.failure(Exception("Failed to fetch artist albums: ${response.status}"))
         }
     } catch (e: Exception) {
         Result.failure(e)

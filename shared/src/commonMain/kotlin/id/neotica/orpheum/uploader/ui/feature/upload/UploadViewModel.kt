@@ -2,10 +2,14 @@ package id.neotica.orpheum.uploader.ui.feature.upload
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import id.neotica.orpheum.uploader.domain.model.artist.ArtistRemoteModel
+import id.neotica.orpheum.uploader.domain.model.catalog.request.AlbumRemoteModel
 import id.neotica.orpheum.uploader.domain.model.catalog.request.UpdateAlbumRequest
 import id.neotica.orpheum.uploader.domain.remote.CatalogRepository
 import id.neotica.orpheum.uploader.domain.remote.UploadRepository
 import id.neotica.orpheum.uploader.platform.readAudioDurationSeconds
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +25,7 @@ class UploadViewModel(
     val state: StateFlow<UploadUiState> = _state.asStateFlow()
 
     private val bucketName = "orpheum"
+    private var artistSearchJob: Job? = null
 
     // --- Input Handlers ---
     fun updateArtistName(name: String) = _state.update { it.copy(artistName = name) }
@@ -46,33 +51,114 @@ class UploadViewModel(
 
     fun dismissMessage() = _state.update { it.copy(statusMessage = null) }
 
+    // --- Artist picker ---
+    fun onArtistPickerOpened() {
+        loadArtists(_state.value.artistSearch)
+    }
+
+    fun updateArtistSearch(query: String) {
+        _state.update { it.copy(artistSearch = query) }
+        artistSearchJob?.cancel()
+        artistSearchJob = viewModelScope.launch {
+            delay(300)
+            loadArtists(query)
+        }
+    }
+
+    fun selectArtist(artist: ArtistRemoteModel) {
+        _state.update {
+            it.copy(
+                selectedArtist = artist,
+                artists = emptyList(),
+                artistSearch = "",
+                selectedAlbum = null,
+                artistAlbums = emptyList(),
+                albumsError = null,
+                isLoadingAlbums = true
+            )
+        }
+        loadArtistAlbums(artist.id)
+    }
+
+    fun clearArtistSelection() {
+        _state.update {
+            it.copy(
+                selectedArtist = null,
+                selectedAlbum = null,
+                artistAlbums = emptyList(),
+                albumsError = null,
+                isLoadingAlbums = false
+            )
+        }
+    }
+
+    // --- Album selection ---
+    fun selectAlbum(album: AlbumRemoteModel) {
+        _state.update { it.copy(selectedAlbum = album, selectedCoverFile = null) }
+    }
+
+    fun clearAlbumSelection() {
+        _state.update { it.copy(selectedAlbum = null) }
+    }
+
+    private fun loadArtists(query: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingArtists = true, artistsError = null) }
+
+            repository.getArtists(page = 1, limit = 50, query = query.ifBlank { null })
+                .onSuccess { response ->
+                    _state.update { it.copy(artists = response.data, isLoadingArtists = false) }
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isLoadingArtists = false, artistsError = error.message) }
+                }
+        }
+    }
+
+    private fun loadArtistAlbums(artistId: String) {
+        viewModelScope.launch {
+            _state.update { it.copy(isLoadingAlbums = true, albumsError = null) }
+
+            repository.getArtistAlbums(artistId)
+                .onSuccess { albums ->
+                    _state.update { it.copy(artistAlbums = albums, isLoadingAlbums = false) }
+                }
+                .onFailure { error ->
+                    _state.update { it.copy(isLoadingAlbums = false, albumsError = error.message) }
+                }
+        }
+    }
+
     // --- Core Logic ---
     fun submitUpload() {
         val currentState = _state.value
 
-        // Basic Validation
-        if (
-            currentState.artistName.isBlank() ||
-            currentState.albumTitle.isBlank() ||
-            currentState.trackTitle.isBlank() ||
-            currentState.selectedFile == null
-        ) {
-            _state.update { it.copy(statusMessage = "Please fill in all required fields and select a file.") }
+        val hasArtist = currentState.selectedArtist != null || currentState.artistName.isNotBlank()
+        val hasAlbum = currentState.selectedAlbum != null || currentState.albumTitle.isNotBlank()
+
+        if (!hasArtist || !hasAlbum || currentState.trackTitle.isBlank() || currentState.selectedFile == null) {
+            _state.update { it.copy(statusMessage = "Please complete artist, album, track and file fields.") }
             return
         }
 
         val releaseYearInt = currentState.releaseYear.toIntOrNull() ?: 2024
         val trackNumberInt = currentState.trackNumber.toIntOrNull() ?: 1
         val audioFile = currentState.selectedFile
-        val coverFile = currentState.selectedCoverFile
+        val isNewAlbum = currentState.selectedAlbum == null
+        val coverFile = if (isNewAlbum) currentState.selectedCoverFile else null
 
         viewModelScope.launch {
             _state.update {
-                it.copy(isLoading = true, statusMessage = "Creating Artist...", uploadProgress = 0f, isSuccess = false)
+                it.copy(
+                    isLoading = true,
+                    statusMessage = if (currentState.selectedArtist == null) "Creating Artist..." else "Using Artist...",
+                    uploadProgress = 0f,
+                    isSuccess = false
+                )
             }
 
-            // Step 1: Create Artist
-            val artistId = repository.createArtist(
+            // Step 1: Resolve Artist (selected or create)
+            val artistId = currentState.selectedArtist?.id ?: repository.createArtist(
                 name = currentState.artistName,
                 bio = currentState.artistBio.ifBlank { null },
                 imageUrl = null
@@ -81,10 +167,10 @@ class UploadViewModel(
                 return@launch
             }
 
-            _state.update { it.copy(statusMessage = "Creating Album...") }
+            _state.update { it.copy(statusMessage = if (isNewAlbum) "Creating Album..." else "Using Album...") }
 
-            // Step 2: Create Album
-            val albumId = repository.createAlbum(
+            // Step 2: Resolve Album (selected or create)
+            val albumId = currentState.selectedAlbum?.id ?: repository.createAlbum(
                 artistId = artistId,
                 title = currentState.albumTitle,
                 releaseYear = releaseYearInt,
@@ -94,9 +180,9 @@ class UploadViewModel(
                 return@launch
             }
 
-            // Step 3: Upload Cover Art (optional, non-fatal on failure)
+            // Step 3: Upload Cover Art (only for newly created albums; non-fatal on failure)
             var coverWarning: String? = null
-            if (coverFile != null) {
+            if (isNewAlbum && coverFile != null) {
                 _state.update { it.copy(statusMessage = "Uploading Cover Art...") }
 
                 val coverPath = uploadRepository.uploadAlbumCover(coverFile, albumId)
